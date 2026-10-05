@@ -1,0 +1,2807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111418">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Entrenador">
+<meta name="description" content="Registro de entrenamiento, progreso, medidas corporales y guía de ejercicios. Funciona sin internet.">
+<title>Mi Entrenador — Registro, progreso y guía</title>
+<style>
+:root{
+  --tinta:#111418; --gris:#5b6470; --linea:#d3d8de; --fondo:#f4f6f8; --carta:#ffffff;
+  --acento:#1668c4; --acento-suave:#e7f0fa; --ok:#1a7f45; --ok-suave:#e6f4ec;
+  --alerta:#b4451b; --alerta-suave:#fdeee7; --amarillo:#8a6100; --amarillo-suave:#fdf4dd;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--fondo);color:var(--tinta);font-size:16px;line-height:1.5}
+header{background:var(--tinta);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:20}
+header h1{margin:0;font-size:17px;letter-spacing:.2px}
+header .sub{font-size:12px;color:#b6bfca;margin-top:3px}
+nav{display:flex;gap:2px;overflow-x:auto;background:var(--tinta);padding:0 8px 8px;
+  position:sticky;top:57px;z-index:19;-webkit-overflow-scrolling:touch}
+nav button{flex:0 0 auto;background:#2a3138;color:#dfe5eb;border:0;padding:9px 13px;
+  border-radius:7px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+nav button[aria-selected="true"]{background:var(--acento);color:#fff}
+main{padding:14px;max-width:920px;margin:0 auto 40px}
+section{display:none}
+section.activa{display:block}
+h2{font-size:16px;margin:14px 0 8px}
+h3{font-size:14.5px;margin:16px 0 6px}
+p{margin:6px 0}
+.card{background:var(--carta);border:1px solid var(--linea);border-radius:10px;
+  padding:12px;margin:10px 0}
+.mini{font-size:12.5px;color:var(--gris)}
+.aviso{background:var(--amarillo-suave);border-left:4px solid var(--amarillo);
+  padding:9px 11px;border-radius:6px;font-size:13px;margin:10px 0}
+.bien{background:var(--ok-suave);border-left:4px solid var(--ok);padding:9px 11px;
+  border-radius:6px;font-size:13px;margin:10px 0}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--gris);margin:8px 0 3px}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--linea);border-radius:7px;
+  font-size:15px;font-family:inherit;background:#fff;color:var(--tinta)}
+button.acc{background:var(--acento);color:#fff;border:0;padding:10px 15px;border-radius:8px;
+  font-size:14.5px;font-weight:600;cursor:pointer;font-family:inherit}
+button.acc.sec{background:#e5e9ee;color:var(--tinta)}
+button.acc.peligro{background:var(--alerta)}
+button.mini{padding:5px 9px;font-size:12.5px;border-radius:6px;border:1px solid var(--linea);
+  background:#fff;cursor:pointer;font-family:inherit}
+.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.fila>div{flex:1 1 110px;min-width:0}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:8px 0}
+th,td{border:1px solid var(--linea);padding:6px 7px;text-align:left}
+th{background:#eceff3;font-size:12.5px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.serie{display:flex;align-items:center;gap:6px;padding:5px 7px;border:1px solid var(--linea);
+  border-radius:6px;margin:4px 0;background:#fafbfc;font-size:13.5px;
+  font-variant-numeric:tabular-nums}
+.serie b{min-width:26px;color:var(--gris);font-weight:600}
+.serie .sp{flex:1}
+.ej{border:1px solid var(--linea);border-radius:10px;background:var(--carta);margin:10px 0;overflow:hidden}
+.ej>summary{padding:11px 12px;cursor:pointer;font-weight:600;font-size:14.5px;list-style:none;
+  display:flex;justify-content:space-between;gap:8px;align-items:center}
+.ej>summary::-webkit-details-marker{display:none}
+.ej>summary .obj{font-weight:500;font-size:12.5px;color:var(--gris);white-space:nowrap}
+.ej .cuerpo{padding:0 12px 12px;border-top:1px solid var(--linea)}
+.hecho{background:var(--ok-suave);border-left:3px solid var(--ok);padding:6px 9px;
+  border-radius:5px;font-size:12.5px;margin:8px 0}
+.error{list-style:none;padding-left:0;margin:6px 0}
+.error li{padding-left:18px;position:relative;font-size:13.5px;margin:3px 0}
+.error li:before{content:"✕";position:absolute;left:0;color:var(--alerta);font-weight:700}
+.pasos{list-style:none;padding-left:0;margin:6px 0;counter-reset:p}
+.pasos li{padding-left:24px;position:relative;font-size:13.5px;margin:5px 0;counter-increment:p}
+.pasos li:before{content:counter(p);position:absolute;left:0;top:0;width:17px;height:17px;
+  background:var(--acento);color:#fff;border-radius:50%;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+.barra{height:16px;background:#e6eaee;border-radius:8px;overflow:hidden;min-width:60px}
+.barra>i{display:block;height:100%;background:var(--acento)}
+.barra.ok>i{background:var(--ok)}
+.barra.alto>i{background:var(--amarillo)}
+.chip{display:inline-block;background:var(--acento-suave);color:#0f4c8f;border-radius:20px;
+  padding:2px 9px;font-size:11.5px;font-weight:600;margin:2px 4px 2px 0}
+.chip.g{background:#e8ebef;color:var(--gris)}
+footer{text-align:center;font-size:12px;color:var(--gris);padding:18px}
+svg{max-width:100%;height:auto}
+
+/* ---- figuras de ejercicios: SVG dibujado dentro del propio archivo ----
+   No son fotos ni imágenes descargadas: son dibujos de líneas hechos acá,
+   así que funcionan sin internet y no usan material de terceros. */
+.fig{background:#fff;border:1px solid var(--linea);border-radius:9px;padding:4px;margin:10px 0}
+.fig svg{display:block;width:100%;height:auto}
+.f-far{stroke:#aab3be;stroke-width:3;stroke-linecap:round;fill:none}
+.f-near{stroke:#111418;stroke-width:4.5;stroke-linecap:round;fill:none}
+.f-torso{stroke:#111418;stroke-width:8;stroke-linecap:round;fill:none}
+.f-cab{fill:#fff;stroke:#111418;stroke-width:4}
+.f-eq{stroke:#1668c4;stroke-width:3;fill:none;opacity:.7;stroke-linecap:round}
+.f-eq-r{fill:#e7f0fa;stroke:#1668c4;stroke-width:2.5;opacity:.85}
+.f-fl{stroke:#c2410c;stroke-width:3;fill:none;stroke-linecap:round}
+.f-flp{fill:#c2410c}
+.f-tx{font-size:9.5px;fill:#5b6470}
+.f-txb{font-size:10.5px;fill:#111418;font-weight:700}
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--gris);margin:6px 0}
+.leyenda i{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.med{display:flex;gap:8px;flex-wrap:wrap}
+.med>div{flex:1 1 104px}
+.hito{border-left:4px solid var(--acento);background:var(--acento-suave);padding:8px 10px;border-radius:6px;font-size:13px;margin:6px 0}
+.tabla-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ---- banda de estado del guardado: lo PRIMERO que hay que ver ----
+   En el teléfono, abrir el archivo directamente puede hacer que el navegador
+   NO guarde. Si eso pasa, hay que avisarlo fuerte y no perder datos en silencio. */
+#banda{padding:0 14px}
+.banda{margin:10px auto 0;max-width:920px;border-radius:9px;padding:10px 12px;font-size:13.5px;
+  display:flex;gap:10px;align-items:flex-start;line-height:1.45}
+.banda.rojo{background:#fdecec;border:1px solid #e5a3a3;border-left:5px solid #c0392b;color:#7d1d13}
+.banda.ambar{background:var(--amarillo-suave);border:1px solid #e0c98a;border-left:5px solid var(--amarillo);color:#6b4b00}
+.banda.verde{background:var(--ok-suave);border:1px solid #a8d5ba;border-left:5px solid var(--ok);color:#125c33}
+.banda .x{margin-left:auto;background:none;border:0;font-size:18px;cursor:pointer;color:inherit;line-height:1;padding:0 2px}
+.pasos-tel{list-style:none;padding-left:0;counter-reset:t;margin:8px 0}
+.pasos-tel li{padding-left:30px;position:relative;margin:10px 0;font-size:13.5px;counter-increment:t}
+.pasos-tel li:before{content:counter(t);position:absolute;left:0;top:1px;width:21px;height:21px;
+  background:var(--acento);color:#fff;border-radius:50%;font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+code{background:#eef1f4;padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+/* ---- Diálogos propios ----
+   NO se usan window.confirm / alert / prompt: en muchos navegadores de iPhone
+   (los que usan WKWebView) están BLOQUEADOS. confirm() devuelve false sin
+   mostrar nada, así que el botón "borrar" parecía no hacer nada y la sesión
+   seguía guardada. Estos diálogos son HTML nuestro y funcionan en todos lados. */
+.modal{position:fixed;inset:0;background:rgba(10,12,15,.62);display:flex;
+  align-items:center;justify-content:center;padding:18px;z-index:100}
+.modal-caja{background:#fff;border-radius:13px;padding:16px;max-width:420px;width:100%;
+  box-shadow:0 12px 40px rgba(0,0,0,.3);max-height:86vh;overflow:auto}
+.modal-caja h3{margin:0 0 8px;font-size:16px}
+.modal-caja p{margin:6px 0;font-size:14px}
+.modal-botones{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+.modal-botones button{flex:1 1 auto;min-width:118px;padding:12px 14px;font-size:15px}
+.toast{position:fixed;left:14px;right:14px;bottom:16px;z-index:110;background:#111418;color:#fff;
+  border-radius:10px;padding:12px 14px;font-size:14px;box-shadow:0 8px 26px rgba(0,0,0,.35);
+  display:flex;gap:10px;align-items:flex-start;max-width:640px;margin:0 auto}
+.toast.malo{background:#8e2b1c}
+.toast.bueno{background:#14603a}
+.toast .x{margin-left:auto;background:none;border:0;color:inherit;font-size:19px;cursor:pointer;line-height:1}
+.toast textarea{width:100%;min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:12px;margin-top:8px;border-radius:7px;border:1px solid #4a545f;padding:8px;
+  background:#1c2229;color:#e8edf2}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mi Entrenador</h1>
+  <div class="sub" id="sub">Registro · progreso · volumen · guía de ejercicios</div>
+</header>
+
+<nav id="tabs">
+  <button data-t="registrar" aria-selected="true">Registrar</button>
+  <button data-t="progreso">Progreso</button>
+  <button data-t="volumen">Volumen</button>
+  <button data-t="ejercicios">Ejercicios</button>
+  <button data-t="comidas">Comidas</button>
+  <button data-t="medidas">Mi cuerpo</button>
+  <button data-t="datos">Mis datos</button>
+</nav>
+
+<!-- Si JavaScript NO corre, esto es lo primero que se ve.
+     Pasa de verdad en el iPhone: la vista previa (Quick Look) de Archivos,
+     WhatsApp u OneDrive muestra el HTML pero NO ejecuta el código, así que la
+     app aparece vacía y parece rota. Mejor explicarlo que dejar la duda. -->
+<noscript>
+<div class="banda rojo" style="margin:12px">
+  <div>
+    <b>⚠ JavaScript está desactivado, o estás viendo el archivo en una VISTA PREVIA.</b><br><br>
+    La aplicación necesita JavaScript. Esto es exactamente lo que pasa si abrís el archivo
+    <b>desde la vista previa del iPhone</b> (Archivos, WhatsApp, OneDrive): iOS muestra el
+    archivo pero <b>no ejecuta el código</b>, así que ves la pantalla vacía y parece rota.<br><br>
+    <b>En iPhone:</b> hay que abrirla desde un <b>enlace https</b>, no desde el archivo local.<br>
+    <b>En Android o en la computadora:</b> abrilo con <b>Chrome</b>.<br>
+    <b>En la computadora:</b> doble clic en el archivo y se abre bien.
+  </div>
+</div>
+</noscript>
+
+<!-- Banda de estado del guardado: se llena por JavaScript al arrancar -->
+<div id="banda"></div>
+
+<main>
+
+<!-- ================= REGISTRAR ================= -->
+<section id="registrar" class="activa">
+  <h2>Sesión de hoy</h2>
+  <div class="card">
+    <div class="fila">
+      <div>
+        <label for="fecha">Fecha</label>
+        <input type="date" id="fecha">
+      </div>
+      <div>
+        <label for="dia">Sesión</label>
+        <select id="dia"></select>
+      </div>
+    </div>
+    <div class="fila" style="margin-top:6px">
+      <div><label for="sueno">Sueño (h)</label><input type="number" id="sueno" step="0.5" min="0" max="14" placeholder="7"></div>
+      <div><label for="estres">Estrés /10</label><input type="number" id="estres" min="0" max="10" placeholder="8"></div>
+      <div><label for="dl">Dolor lumbar /10</label><input type="number" id="dl" min="0" max="10" placeholder="0"></div>
+      <div><label for="dr">Dolor rodilla /10</label><input type="number" id="dr" min="0" max="10" placeholder="0"></div>
+    </div>
+    <div id="estadoSesion" style="margin-top:10px"></div>
+  </div>
+
+  <div id="listaEjercicios"></div>
+
+  <div class="card">
+    <label for="notas">Notas de la sesión</label>
+    <textarea id="notas" rows="3" placeholder="Cómo me sentí, qué me molestó, qué cambié..."></textarea>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="acc" id="guardar">Guardar sesión</button>
+      <button class="acc sec" id="limpiar">Empezar de cero</button>
+    </div>
+    <div id="msgGuardar" style="margin-top:8px"></div>
+  </div>
+
+  <div id="sesionesGuardadas"></div>
+</section>
+
+<!-- ================= PROGRESO ================= -->
+<section id="progreso">
+  <h2>Progreso</h2>
+  <p class="mini">Peso de la mejor serie de cada ejercicio, sesión por sesión. <b>Esto es lo que importa</b>: si en 2 semanas seguidas estos números no suben, hay que revisar sueño, estrés y calorías <b>antes</b> que las series.</p>
+  <div id="progContenido"></div>
+</section>
+
+<!-- ================= VOLUMEN ================= -->
+<section id="volumen">
+  <h2>Volumen semanal</h2>
+  <p class="mini">Series que <b>realmente</b> hiciste esta semana, comparadas con el objetivo del plan. La semana va de <b>lunes a domingo</b>.</p>
+  <div id="volContenido"></div>
+</section>
+
+<!-- ================= EJERCICIOS ================= -->
+<section id="ejercicios">
+  <h2>Guía de ejercicios</h2>
+  <p class="mini">Posición, ejecución y errores de cada ejercicio, con la adaptación para tu rodilla y tu lumbar. Tocá uno para abrirlo.</p>
+  <input type="search" id="buscar" placeholder="Buscar ejercicio..." style="margin:8px 0 12px">
+  <div id="guiaContenido"></div>
+</section>
+
+<!-- ================= COMIDAS ================= -->
+<section id="comidas">
+  <h2>Comidas</h2>
+  <p class="mini">Registro <b>sin balanza</b>: por unidades caseras, platos comprados y comidas frecuentes.
+  La meta son <b>4 comidas con ~35 g de proteína cada una</b>.</p>
+
+  <div class="card">
+    <div class="fila">
+      <div>
+        <label for="cFecha">Día</label>
+        <input type="date" id="cFecha">
+      </div>
+      <div style="flex:0 0 auto">
+        <label>&nbsp;</label>
+        <button class="acc sec" id="cHoy">Hoy</button>
+      </div>
+    </div>
+    <div id="cResumen" style="margin-top:10px"></div>
+  </div>
+
+  <details class="ej" id="cAyuda">
+    <summary><span>📏 Cómo calcular sin balanza</span><span class="obj">abrir</span></summary>
+    <div class="cuerpo">
+      <p><b>No hace falta pesar nada.</b> Estas referencias con la mano son suficientes:</p>
+      <ul class="error" style="list-style:none">
+        <li style="padding-left:0"><b>1 palma de la mano</b> (sin los dedos) ≈ 30 g de proteína → <b>esa es tu porción en cada comida</b></li>
+        <li style="padding-left:0"><b>1 puño cerrado</b> ≈ 1 taza de arroz, frijoles o verdura</li>
+        <li style="padding-left:0"><b>1 cucharada</b> = aceite, crema, azúcar</li>
+        <li style="padding-left:0"><b>1 rebanada / 1 presa / 1 unidad</b> = lo que ya viene así (huevo, tortilla, plátano)</li>
+      </ul>
+      <p class="mini"><b>Lo único que importa de verdad:</b> que en <b>cada una de las 4 comidas</b> haya <b>una palma de proteína</b>.
+      Eso solo ya te lleva a ~140 g al día. Lo demás (arroz, tortilla, aceite) es para tener energía: si te pasás, sube el total; si recortás ahí, bajás.</p>
+      <div class="aviso">Los valores de cada alimento son <b>estimaciones</b>, no datos de laboratorio. Sirven para <b>no perder el registro</b> y ver tendencias, no para precisión al gramo. Y si comés algo que hizo otra persona o compraste hecho, <b>usá los “platos comprados”</b>: son estimaciones gruesas y están marcadas como tales.</div>
+    </div>
+  </details>
+
+  <details class="ej" id="cMisAlimentos">
+    <summary><span>⭐ Mis alimentos y platos — agregá los que comés vos</span><span class="obj">abrir</span></summary>
+    <div class="cuerpo">
+      <p><b>Si comés variado, el catálogo fijo no alcanza.</b> Agregá acá tus propios alimentos y después los vas a tener en la lista de cada comida.</p>
+      <div class="aviso" style="margin:8px 0">
+        <b>No hace falta que sepas los macros.</b> Elegí <b>el tipo</b> de comida y <b>el tamaño</b>, y la app te los estima.
+        Podés corregirlos a mano si querés. Son <b>estimaciones</b>: alcanzan para llevar el registro.
+      </div>
+
+      <div class="fila" style="margin-top:8px">
+        <div style="flex:2 1 200px"><label for="maNom">Nombre del alimento</label>
+          <input type="text" id="maNom" placeholder="Ej: pollo guisado de mi tía"></div>
+      </div>
+
+      <div class="fila" style="margin-top:6px">
+        <div style="flex:1 1 130px"><label for="maUni">Unidad (cómo lo medís)</label>
+          <input type="text" id="maUni" list="uniSug" placeholder="1 plato"></div>
+        <div style="flex:1 1 140px"><label for="maTipo">Tipo de comida</label>
+          <select id="maTipo"></select></div>
+        <div style="flex:1 1 150px"><label for="maTam">Tamaño</label>
+          <select id="maTam"></select></div>
+      </div>
+
+      <div class="fila" style="margin-top:6px">
+        <div><label for="maProt">Proteína (g)</label>
+          <input type="number" inputmode="decimal" step="0.5" min="0" id="maProt"></div>
+        <div><label for="maKcal">Calorías</label>
+          <input type="number" inputmode="numeric" step="5" min="0" id="maKcal"></div>
+        <div style="flex:0 0 auto"><label>&nbsp;</label>
+          <button class="acc" id="maGuardar">Guardar alimento</button></div>
+      </div>
+      <div id="msgMa" style="margin-top:8px"></div>
+
+      <div id="maLista" style="margin-top:12px"></div>
+    </div>
+  </details>
+
+  <datalist id="uniSug">
+    <option value="1 plato"></option>
+    <option value="1 presa"></option>
+    <option value="1 porción"></option>
+    <option value="1 taza"></option>
+    <option value="1 cucharón"></option>
+    <option value="1 cucharada"></option>
+    <option value="1 unidad"></option>
+    <option value="1 rebanada"></option>
+    <option value="1 vaso"></option>
+    <option value="1 puño"></option>
+  </datalist>
+
+  <div id="comidasContenido"></div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Últimos 14 días</h3>
+    <div id="cSemana"></div>
+  </div>
+</section>
+
+<!-- ================= MI CUERPO (MEDIDAS) ================= -->
+<section id="medidas">
+  <h2>Mi cuerpo</h2>
+  <p class="mini">Peso, medidas y <b>% de grasa calculado</b> con la fórmula de la Armada (cintura, cuello y estatura). Acá se ve si el plan está funcionando.</p>
+
+  <div class="card">
+    <h3 style="margin-top:0">Cargar una medición</h3>
+    <div class="aviso">
+      <b>Medí siempre igual</b>: en ayunas, por la mañana, antes de comer o beber, con la misma cinta.
+      Por el colon irritable, la cintura <b>puede subir por distensión y no por grasa</b>: leé la <b>tendencia de 2-3 semanas</b>, nunca un día suelto.
+    </div>
+    <label for="mFecha">Fecha</label>
+    <input type="date" id="mFecha">
+    <div class="med">
+      <div><label for="mPeso">Peso (kg)</label><input type="number" inputmode="decimal" step="0.1" id="mPeso" placeholder="72.6"></div>
+      <div><label for="mCintura">Cintura (cm)</label><input type="number" inputmode="decimal" step="0.1" id="mCintura" placeholder="93"></div>
+      <div><label for="mCuello">Cuello (cm)</label><input type="number" inputmode="decimal" step="0.1" id="mCuello" placeholder="37"></div>
+      <div><label for="mEstatura">Estatura (cm)</label><input type="number" inputmode="decimal" step="0.1" id="mEstatura" placeholder="168"></div>
+    </div>
+    <div class="med" style="margin-top:6px">
+      <div><label for="mMuslo">Muslo (cm)</label><input type="number" inputmode="decimal" step="0.1" id="mMuslo" placeholder="opcional"></div>
+      <div><label for="mPantorrilla">Pantorrilla (cm)</label><input type="number" inputmode="decimal" step="0.1" id="mPantorrilla" placeholder="opcional"></div>
+      <div><label for="mBrazo">Brazo (cm)</label><input type="number" inputmode="decimal" step="0.1" id="mBrazo" placeholder="opcional"></div>
+      <div><label for="mPecho">Pecho (cm)</label><input type="number" inputmode="decimal" step="0.1" id="mPecho" placeholder="opcional"></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="acc" id="guardarMedida">Guardar medición</button>
+      <button class="acc sec" id="precargarMedida">Traer lo último cargado</button>
+    </div>
+    <div id="msgMedida" style="margin-top:8px"></div>
+  </div>
+
+  <div id="medContenido"></div>
+</section>
+
+<!-- ================= MIS DATOS ================= -->
+<section id="datos">
+  <h2>Mis datos</h2>
+  <div class="aviso">
+    <b>Importante sobre el guardado.</b> La aplicación guarda en este navegador y en esta computadora.
+    Si borrás los datos del navegador, <b>se pierde todo</b>. Por eso: <b>exportá seguido</b> y guardá el archivo.
+  </div>
+  <div id="resumenDatos"></div>
+  <div class="card">
+    <h3>Exportar</h3>
+    <p class="mini">Descargá un archivo con todo tu historial. Guardalo en la carpeta del plan.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="acc" id="expJson">Descargar copia (.json)</button>
+      <button class="acc sec" id="expCsv">Descargar tabla (.csv)</button>
+      <button class="acc sec" id="expTxt">Copiar resumen para el entrenador</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Importar</h3>
+    <p class="mini">Cargá una copia exportada antes. Reemplaza los datos actuales.</p>
+    <input type="file" id="impFile" accept=".json,application/json">
+  </div>
+  <div id="sesionesGuardadas2"></div>
+  <div class="card">
+    <h3>Zona peligrosa</h3>
+    <p class="mini">Borrar el historial completo. Para borrar <b>una sola sesión</b>, usá la lista de arriba o la de la pestaña <b>Registrar</b>.</p>
+    <button class="acc peligro" id="borrarTodo">Borrar todo el historial</button>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">En la computadora</h3>
+    <p class="mini" style="margin:0">Es un archivo único. Hacé <b>doble clic</b> en <code>app-entrenamiento.html</code> y se abre en el navegador. Funciona <b>sin internet</b>.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">📱 En el teléfono (para llevarla al gimnasio)</h3>
+
+    <div class="banda rojo" style="margin:10px 0">
+      <div>
+        <b>⚠ SI TENÉS iPHONE, LEÉ ESTO PRIMERO.</b><br>
+        <b>En iPhone la Opción A (archivo local) NO FUNCIONA.</b> iOS abre el archivo en su
+        <b>vista previa</b> (Archivos, WhatsApp, OneDrive) y ahí <b>JavaScript está desactivado</b>:
+        vas a ver la pantalla vacía y va a parecer rota. <b>No es un error del archivo.</b><br>
+        <b>En iPhone usá la Opción B (enlace https), que es la única que anda.</b>
+      </div>
+    </div>
+
+    <div class="aviso">
+      <b>Sobre el guardado.</b> En el teléfono el navegador puede abrir la app pero
+      <b>no dejar guardar</b>. Mirá la <b>banda de arriba</b>: si está en <b>rojo</b>, no está guardando y
+      tenés que exportar al terminar cada sesión. Si está en <b>verde</b>, guarda bien.
+    </div>
+
+    <h3>Opción B — Con un enlace ⭐ LA ÚNICA QUE FUNCIONA EN iPHONE</h3>
+    <p class="mini">Subís el archivo a un servicio que te dé un enlace <code>https://</code> y lo abrís desde ahí.
+    Con un enlace, <b>JavaScript corre</b>, el guardado es confiable y se puede instalar como app.</p>
+    <ol class="pasos-tel">
+      <li><b>Subí el archivo</b> a un servicio gratuito de páginas estáticas: <b>Netlify Drop</b> (arrastrar y soltar),
+      <b>GitHub Pages</b> o <b>Cloudflare Pages</b>. Hace falta una cuenta gratis.
+      (<b>Google Drive no sirve</b>: te lo descarga, no lo ejecuta.)</li>
+      <li><b>Abrí el enlace</b> que te den, en <b>Safari</b>.</li>
+      <li><b>Fijalo a la pantalla de inicio:</b> botón <b>Compartir</b> (el cuadrito con la flecha) →
+      <b>Añadir a pantalla de inicio</b>. Te queda como un ícono, igual que una app.</li>
+      <li><b>Contra</b>: necesita internet para abrirse. Si en el gimnasio no hay señal, no carga.</li>
+    </ol>
+
+    <h3>Opción A — Archivo en el teléfono (SOLO ANDROID)</h3>
+    <p class="mini">Funciona sin internet, pero <b>solo en Android</b>. En iPhone no sirve, por lo explicado arriba.</p>
+    <ol class="pasos-tel">
+      <li><b>Pasá el archivo al teléfono.</b> Lo más fácil: mandate <code>app-entrenamiento.html</code> a tu propio chat de <b>WhatsApp</b> y abrilo desde ahí. También sirve por correo o con cable USB a la carpeta <code>Download</code>.</li>
+      <li><b>Guardalo en el teléfono.</b> Tocá el archivo y elegí <b>Guardar en Descargas</b>. No lo dejes solo en el chat.</li>
+      <li><b>Abrilo con Chrome.</b> App <b>Archivos</b> → <b>Download</b> → tocá <code>app-entrenamiento.html</code> → <b>Abrir con → Chrome</b>. <b>No lo abras con el visor de WhatsApp</b>: ahí no funcionan los botones.</li>
+      <li><b>Fijalo a la pantalla de inicio.</b> En Chrome, menú <b>⋮</b> → <b>Añadir a pantalla de inicio</b>.</li>
+      <li><b>Comprobá la banda.</b> Si sale <b>verde</b>, listo. Si sale <b>rojo</b>, exportá al final de cada sesión.</li>
+    </ol>
+
+    <h3>Si tenés iPhone: otra alternativa sin internet</h3>
+    <p class="mini">Instalá una app de archivos que traiga su <b>propio navegador</b> (por ejemplo <b>Documents</b> de Readdle).
+    Esas apps sí ejecutan JavaScript en archivos locales, así que la app funciona <b>sin internet</b>.
+    Es la única forma de tenerla offline en iPhone.</p>
+
+    <h3>Cualquiera sea la opción: exportá seguido</h3>
+    <p class="mini">La app guarda <b>solo en este navegador y en este aparato</b>. No hay nube. Si borrás los datos del
+    navegador, se pierde. <b>Tocá «Descargar copia» cada tanto</b> y guardá el archivo junto al plan.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>Hecha para el plan de 4 días · pierna primero · los datos quedan en tu navegador<br>
+<span id="version" style="font-size:11.5px"></span></footer>
+
+<script>
+"use strict";
+
+/* ============================================================
+   0. CAPTURADOR DE ERRORES VISIBLE
+
+   En un teléfono no hay consola: si algo falla, el usuario ve una pantalla
+   rara y no tiene forma de contarme qué pasó. Esto muestra el error EN LA
+   PANTALLA, así puede sacarle una foto y mandarla.
+   Va primero, antes que todo lo demás, para poder atrapar errores de arranque.
+   ============================================================ */
+window.onerror = function(mensaje, archivo, linea, columna){
+  try{
+    var c = document.getElementById("banda");
+    if(!c) return false;
+    c.innerHTML = '<div class="banda rojo"><div>' +
+      '<b>⚠ La aplicación falló al arrancar.</b><br>' +
+      String(mensaje) + (linea ? ' <span style="opacity:.75">(línea ' + linea + ')</span>' : '') +
+      '<br><br><b>Sacale una foto a este mensaje y mandámela.</b> Con eso lo arreglo.' +
+      '</div></div>';
+  }catch(e){ /* si ni esto funciona, no hay nada más que hacer */ }
+  return false;
+};
+
+/* ============================================================
+   0.b DIÁLOGOS PROPIOS — reemplazan a confirm / alert / prompt
+
+   POR QUÉ: en muchos navegadores de iPhone (los que usan WKWebView, como el
+   navegador interno de otras apps) `window.confirm` está BLOQUEADO: no muestra
+   nada y devuelve `false`. El código hacía `if(!confirm(...)) return;`, así que
+   el botón "borrar" NO HACÍA NADA y la sesión seguía guardada, sin ningún
+   aviso. Lo mismo con alert y prompt.
+
+   Estos diálogos son HTML propio: funcionan en todos lados y se ven mejor en
+   el teléfono. Se usan SIEMPRE, sin depender del navegador.
+   ============================================================ */
+function pedirConfirmacion(o){
+  o = o || {};
+  return new Promise(function(resolver){
+    var caja = document.createElement("div");
+    caja.className = "modal";
+    caja.innerHTML =
+      '<div class="modal-caja">' +
+        '<h3>' + esc(o.titulo || "¿Confirmás?") + '</h3>' +
+        (o.texto ? '<p>' + esc(o.texto) + '</p>' : '') +
+        (o.detalle ? '<p class="mini">' + esc(o.detalle) + '</p>' : '') +
+        '<div class="modal-botones">' +
+          '<button class="acc sec" data-no="1">' + esc(o.cancelar || "Cancelar") + '</button>' +
+          '<button class="acc' + (o.peligro ? ' peligro' : '') + '" data-si="1">' +
+            esc(o.boton || "Confirmar") + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(caja);
+    var cerrado = false;
+    function cerrar(v){
+      if(cerrado) return;
+      cerrado = true;
+      if(caja.parentNode) caja.parentNode.removeChild(caja);
+      resolver(v);
+    }
+    caja.addEventListener("click", function(ev){
+      var t = ev.target;
+      var d = (t && t.dataset) ? t.dataset : {};
+      if(d.si !== undefined) cerrar(true);
+      else if(d.no !== undefined) cerrar(false);
+      else if(t === caja) cerrar(false);   /* tocar afuera = cancelar */
+    });
+  });
+}
+
+/* Aviso flotante en vez de alert(). Se va solo a los 5 segundos. */
+function avisar(texto, tipo, opciones){
+  var o = opciones || {};
+  var caja = document.createElement("div");
+  caja.className = "toast" + (tipo ? " " + tipo : "");
+  caja.innerHTML = '<div style="flex:1">' + esc(texto) +
+    (o.copiable ? '<textarea readonly></textarea>' : '') + '</div>' +
+    '<button class="x" title="Cerrar">✕</button>';
+  document.body.appendChild(caja);
+  if(o.copiable){
+    var ta = caja.querySelector("textarea");
+    if(ta){ ta.value = o.copiable; try{ ta.focus(); ta.select(); }catch(e){} }
+  }
+  function quitar(){ if(caja.parentNode) caja.parentNode.removeChild(caja); }
+  caja.addEventListener("click", function(ev){
+    if(ev.target && ev.target.className === "x") quitar();
+  });
+  if(!o.copiable) setTimeout(quitar, 5000);
+  return quitar;
+}
+
+/* Se deja constancia de si los diálogos nativos están disponibles. La app NO
+   depende de ellos, pero saberlo ayuda a diagnosticar en el teléfono. */
+function dialogosNativosSirven(){
+  try{ return typeof window.confirm === "function"; }catch(e){ return false; }
+}
+
+/* ============================================================
+   1. TÉCNICA DE CADA EJERCICIO
+   Texto de la guía. Las indicaciones de técnica son CRITERIO
+   PRÁCTICO ESTÁNDAR, no afirmaciones de estudios. Lo que sí
+   viene de la evidencia leída está marcado en "evidencia".
+   ============================================================ */
+const TECNICAS = {
+  "hack-squat": {
+    nombre:"Hack squat", carga:"2 discos de 45 (90 lb)",
+    para:"Tu ejercicio principal de pierna. Carga los cuádriceps con la espalda completamente apoyada en el respaldo: NO comprime la lumbar. Por eso está en el plan y no la sentadilla libre.",
+    posicion:"En la máquina convertible, en modo hack squat. Espalda y cadera PEGADAS al respaldo todo el tiempo. PIES ALTOS en la plataforma, al ancho de hombros, puntas levemente hacia afuera. Hombros bajo las almohadillas.",
+    ejecucion:["Destrabá los seguros y descolgá el peso con las piernas, sin bloquear del todo la rodilla.",
+      "Bajá CONTROLADO 2-3 s flexionando rodillas y cadera, con la espalda sin despegarse del respaldo.",
+      "Bajá hasta donde la rodilla NO duela. No busques profundidad máxima: buscá el rango más profundo INDOLORO.",
+      "Empujá con TODA la planta del pie, no solo con los dedos."],
+    errores:["Despegar la cadera del respaldo al subir","Bajar de golpe","Bloquear la rodilla arriba con todo el peso","Poner los pies bajos en la plataforma"],
+    adaptacion:"PIES ALTOS reduce el estrés en la rodilla (pies bajos = más rodilla). Si sentís dolor al bajar, ACORTÁ EL RANGO hasta donde sea indoloro: ese es tu rango por ahora, y se amplía solo cuando deje de doler. Es el ejercicio donde MÁS importa progresar la carga.",
+    evidencia:"Pies altos y rango indoloro: adaptación por tu rodilla sin diagnosticar (extrapolación, no viene de los papers)."
+  },
+  "prensa": {
+    nombre:"Prensa de piernas", carga:"5 discos de 45 (225 lb)",
+    para:"Segundo estímulo de cuádriceps con la espalda apoyada. Es el ejercicio donde más peso podés mover sin castigar la columna.",
+    posicion:"Sentado con ESPALDA Y CADERA bien apoyadas en el respaldo. Pies altos en la plataforma, al ancho de hombros.",
+    ejecucion:["Bajá la plataforma CONTROLADO 2-3 s hasta donde la rodilla no duela.",
+      "Empujá con la planta completa. NO bloquees la rodilla arriba: dejá un pequeño margen.",
+      "Mantené la cadera pegada al asiento durante TODO el recorrido."],
+    errores:["Despegar la cadera al bajar (la lumbar se redondea = riesgo)","Bloquear la rodilla de golpe","Bajar tanto que la cadera se despegue","Agarrarse fuerte y tirar con la lumbar"],
+    adaptacion:"Bajamos de tus 270 lb a 225 lb porque PASÁS de pocas series a 4. Con el doble de volumen, la misma carga te destruye la primera semana. En 2-3 semanas vas a estar por encima de 270. Pies altos y rango indoloro."
+  },
+  "extension-rodillas": {
+    nombre:"Extensión de rodillas", carga:"La placa más liviana que te permita 15-20",
+    para:"Aísla el cuádriceps. Es tu ejercicio TERMÓMETRO de la rodilla: si algo va a molestar, va a ser este, y te avisa temprano.",
+    posicion:"Sentado, ESPALDA APOYADA en el respaldo, rodilla alineada con el eje de la máquina. El rodillo justo arriba de los tobillos.",
+    ejecucion:["Extendé la rodilla DESDE 90° HASTA UNOS 30°, SIN llegar a bloquear del todo.",
+      "Subida en 1 s, BAJADA CONTROLADA en 2-3 s.",
+      "Apretá el cuádriceps arriba un instante antes de bajar."],
+    errores:["Usar esto como ejercicio de fuerza máxima","Bloquear la rodilla con todo el peso","Levantar la cadera del asiento","Carga alta y pocas repeticiones"],
+    adaptacion:"RANGO 90°→30°, SIN BLOQUEAR. Cargar la extensión en el rango final es lo que más molesta al dolor patelofemoral. Carga LIGERA y muchas repeticiones. Si la rodilla duele, bajá la carga ANTES que el rango. Última serie al fallo técnico (RIR 0-1): la rodilla limita el peso, así que el fallo es el estímulo que queda.",
+    evidencia:"RIR 0-1 en aislamiento donde la articulación limita la carga (Bernárdez-Vázquez 2022). Descanso 2-3 min: criterio práctico."
+  },
+  "curl-femoral": {
+    nombre:"Curl femoral", carga:"Mancuerna de 10-15 lb entre los pies ⚠ ver nota",
+    para:"Entrena los isquios en su función de FLEXIONAR LA RODILLA. Tus otros ejercicios de cadena posterior (hip thrust, pull-through) los entrenan en su OTRA función: extender la cadera. Son funciones distintas y una NO reemplaza a la otra.",
+    posicion:"⚠ NO TENÉS MÁQUINA DE CURL FEMORAL. Usá la variante A: boca abajo en el banco plano, con las RODILLAS JUSTO EN EL BORDE y las piernas colgando. Cadera y abdomen bien apoyados. Sostené una mancuerna ENTRE LOS TOBILLOS, apretando los pies uno contra el otro.",
+    ejecucion:["Flexioná SOLO la rodilla y llevá los talones hacia los glúteos, lo más alto que puedas.",
+      "Apretá el isquio arriba 1 segundo.",
+      "Bajá CONTROLADO en 2-3 s, sin soltar el peso de golpe.",
+      "La cadera NO se despega del banco en ningún momento."],
+    errores:["Levantar la cadera (convierte el ejercicio en extensión de lumbar)","Usar demasiado peso","Soltar el peso en la bajada","Rango corto"],
+    adaptacion:"SI LA CADERA SE LEVANTA, ES DEMASIADO PESO. Ese es el error que hay que evitar. Este ejercicio no comprime la rodilla con el pie fijo (el movimiento es la rodilla doblándose libremente), pero empezá con poco rango y poca carga. Última serie a RIR 0-1. Arrancá con 10-15 lb: vas a sentir que es poco, está bien, castiga mucho con poco peso.",
+    nota:"Alternativas sin máquina, en orden: (A) mancuerna entre los pies ⭐ la recomendada · (B) polea baja con tobillera · (C) nórdico asistido (remate, 1×/semana, DOMS fuerte) · (D) deslizante con toalla (avanzado, no para empezar) · (E) banda elástica."
+  },
+  "gemelos-pie": {
+    nombre:"Gemelos de pie en Smith", carga:"2 discos de 45 (90 lb)",
+    para:"Pantorrillas. Es el músculo más terco y necesita lo contrario de lo que casi todos hacen: RANGO COMPLETO y PAUSA ABAJO.",
+    posicion:"Barra del Smith sobre los HOMBROS (no sobre el cuello). De pie con la PUNTA DE LOS PIES en un escalón, disco o base, para que el talón quede libre y pueda bajar.",
+    ejecucion:["Bajá el talón TODO lo que puedas hasta sentir el estiramiento máximo en la pantorrilla.",
+      "PAUSA DE 2 SEGUNDOS ABAJO. Esto es lo que casi nadie hace y es lo que hace la diferencia.",
+      "Subí lo más alto que puedas (parándote en la punta) y apretá 1 s arriba.",
+      "Bajada lenta de 2-3 s."],
+    errores:["REBOTAR SIN PAUSA ABAJO (el error número uno)","Rango corto","Hacerlo rápido","No bajar el talón"],
+    adaptacion:"La rodilla no está bajo carga axial, así que va al fallo (RIR 0-1). Cuidado con el EQUILIBRIO: sujetate a la jaula con una mano si hace falta y no te vayas de espalda. Si la carga en la barra te molesta en la lumbar, pasá al gemelo sentado.",
+    evidencia:"Pausa de 2 s en el estiramiento completo: criterio práctico. RIR 0-1 en aislamiento (Bernárdez-Vázquez 2022)."
+  },
+  "gemelo-sentado": {
+    nombre:"Gemelo sentado (mancuerna sobre la rodilla)", carga:"Mancuerna media",
+    para:"Con la RODILLA FLEXIONADA trabaja el SÓLEO, el músculo que está debajo del gemelo. Es la mitad de la pantorrilla que el ejercicio de pie no toca.",
+    posicion:"Sentado en un banco, MANCUERNA APOYADA SOBRE LA RODILLA (o sobre el muslo, cerca de la rodilla). Punta de los pies en un escalón o disco. Muslo paralelo al piso.",
+    ejecucion:["Igual que el de pie: bajá el talón al máximo y PAUSA 2 s abajo.",
+      "Subí a la punta de los pies y apretá 1 s.",
+      "Bajada lenta."],
+    errores:["Rebotar sin pausa","Rango corto","Soltar el peso de golpe"],
+    adaptacion:"Podés sostener la mancuerna con la mano para que no se mueva. Va al fallo (RIR 0-1). Si te resulta incómodo, usá una mochila con peso sobre la rodilla en vez de la mancuerna."
+  },
+  "mcgill": {
+    nombre:"McGill Big 3", carga:"Peso corporal",
+    para:"Son TRES ejercicios ISOMÉTRICOS creados por Stuart McGill, investigador de biomecánica de columna (Universidad de Waterloo, Canadá). El objetivo NO es marcar abdominales: es construir RESISTENCIA y ESTABILIDAD en los músculos que protegen tu columna, SIN doblarla una y otra vez bajo carga. Isométrico = el músculo trabaja manteniendo una posición, sin acortarse ni estirarse. Eso es exactamente lo que hace tu espalda cuando levantás algo pesado: SOSTENER.",
+    posicion:"Los tres se hacen en el piso. Necesitás una esterilla o algo blando.",
+    ejecucion:["1) CURL-UP MODIFICADO — Boca arriba. UNA rodilla flexionada, la otra pierna estirada. LAS DOS MANOS DEBAJO DE LA LUMBAR, palmas abajo, para sostener la curva natural. Levantá SOLO cabeza y hombros unos centímetros. Sostené 8-10 s. 5-8 reps. Cambiá la pierna flexionada.",
+      "2) PLANCHA LATERAL — De costado, apoyado en el antebrazo (codo justo debajo del hombro), rodillas flexionadas al empezar. Levantá la cadera hasta que el cuerpo quede EN LÍNEA RECTA. Sostené 20-30 s. 3 series por lado.",
+      "3) BIRD DOG — En cuadrupedia, manos bajo hombros y rodillas bajo cadera. ESPALDA PLANA: imaginá un vaso de agua sobre la lumbar que no se puede caer. Estirá UN BRAZO y LA PIERNA OPUESTA al mismo tiempo. Sostené 8-10 s. 5-8 reps por lado."],
+    errores:["CURL-UP: hacerlo rápido (no es un crunch, es una contracción SOSTENIDA)","CURL-UP: tirar del cuello con las manos (van DEBAJO de la espalda)","CURL-UP: aplanar la lumbar contra el piso","PLANCHA: dejar caer la cadera (si baja, se terminó el ejercicio)","PLANCHA: rotar el torso; el cuerpo es una tabla plana","BIRD DOG: LEVANTAR LA PIERNA DEMASIADO ALTO (eso ARQUEA la lumbar, justo lo que queremos evitar)","BIRD DOG: rotar la cadera en vez de mantenerla quieta","Aguantar la respiración en los tres"],
+    adaptacion:"Se progresa AGUANTANDO MÁS TIEMPO, no agregando peso. Tu espalda necesita RESISTENCIA, no fuerza máxima. En el bird dog, la pierna sube SOLO hasta la altura de la cadera: si la cadera rota o se inclina, REDUCÍ EL RANGO. Si vas justo de tiempo, el McGill Big 3 es lo ÚLTIMO que se recorta, no lo primero: son 10 minutos que protegen la columna que usás en todo lo demás. Objetivo a largo plazo: plancha lateral 60 s, curl-up y bird dog 10 s sin que la lumbar se mueva.",
+    evidencia:"⚠ EL McGILL BIG 3 COMO PROTOCOLO NO ESTÁ EN LA BIBLIOTECA DESCARGADA. Es un marco de un autor concreto, NO evidencia verificada. Existe literatura sobre 'estabilidad central' como categoría (más amplia) y hay 5 papers de acceso abierto agregados a la lista de descarga, pero NINGUNO LEÍDO TODAVÍA. La dosis de arriba es CRITERIO PRÁCTICO. Los dos papers de lumbar y rodilla que sí se leyeron (van Middelkoop 2011, Crossley 2016) NO dan ninguna dosis."
+  },
+  "press-banca": {
+    nombre:"Press banca en Smith", carga:"Encontrar en la semana 1",
+    para:"Pecho, hombro y tríceps. En Smith el recorrido es guiado, así que no tenés que estabilizar el peso y la lumbar trabaja menos que con barra libre.",
+    posicion:"Banco PLANO dentro de la jaula, de modo que la barra baje a la ALTURA DEL PECHO. Pies firmes en el piso. ESCÁPULAS (omóplatos) RETRAÍDAS y apoyadas en el banco: juntalos 'guardándotelos en el bolsillo' y no los sueltes.",
+    ejecucion:["Agarre algo más ancho que los hombros.",
+      "Bajá la barra CONTROLADO hasta rozar el pecho, con los codos a unos 45° del torso (no abiertos a 90°).",
+      "Empujá hasta extender los brazos sin bloquear con violencia."],
+    errores:["ARQUEAR LA LUMBAR (el error clásico)","Soltar los omóplatos","Bajar la barra al cuello en vez del pecho","Codos abiertos a 90° (molesta el hombro)"],
+    adaptacion:"NO ARQUEES LA LUMBAR. El error clásico del press banca es arquear la espalda baja para levantar más. Vos NO lo hagas: LUMBAR NEUTRA, APOYADA. Es menos peso y la columna te lo va a agradecer.",
+    evidencia:"Nada de fallo con carga axial: RIR 1-3 (regla del plan, §3.14)."
+  },
+  "press-inclinado": {
+    nombre:"Press inclinado con mancuernas", carga:"Encontrar en la semana 1",
+    para:"Pecho superior, que es la parte que más llena visualmente el torso.",
+    posicion:"Banco inclinado a 30-45° (más de 45° ya es press de hombro). Una mancuerna en cada mano apoyadas en los muslos al empezar. SUBILAS CON LA AYUDA DE LAS RODILLAS, no con un tirón de espalda.",
+    ejecucion:["Empezá con las mancuernas a la altura del pecho, palmas hacia adelante.",
+      "Empujá hacia arriba y LIGERAMENTE HACIA ADENTRO (los brazos tienden a juntarse arriba).",
+      "Bajá controlado hasta sentir el estiramiento del pecho, sin bajar más allá de donde el hombro esté cómodo."],
+    errores:["Inclinación excesiva (se convierte en press militar)","Abrir los codos a 90°","Bajar demasiado y forzar el hombro","Arquear la espalda para sacar el peso"],
+    adaptacion:"Espalda APOYADA en el banco, no la despegues. Para sacar y guardar las mancuernas, USÁ LAS RODILLAS para impulsarlas: así no castigás la lumbar."
+  },
+  "pec-deck": {
+    nombre:"Pec deck", carga:"Encontrar en la semana 1",
+    para:"Aísla el pecho con CERO carga en la lumbar. Es el ejercicio de pecho más seguro para tu espalda.",
+    posicion:"Sentado, ESPALDA APOYADA en el respaldo, pies firmes. Codos/antebrazos a la altura de los hombros, ligeramente por debajo.",
+    ejecucion:["Juntá los brazos al frente EN UN ARCO, como si abrazaras un árbol.",
+      "Apretá el pecho 1 s cuando los brazos se juntan.",
+      "Volvé CONTROLADO: no dejes que el peso te abra de golpe."],
+    errores:["Usar impulso con el torso","Volver demasiado rápido (ahí está la mitad del estímulo)","Encoger los hombros hacia las orejas"],
+    adaptacion:"Es de los más seguros de tu plan: respaldo completo, sin carga axial. Por eso la última serie va al fallo (RIR 0-1). Si no tenés pec deck: aperturas con mancuernas en banco plano, o press en el piso."
+  },
+  "laterales": {
+    nombre:"Elevaciones laterales", carga:"Liviana: necesita control, no peso",
+    para:"El deltoides lateral, que es lo que hace que el torso se vea ancho de arriba. Vos ya lo tenés desarrollado: acá es mantenimiento, no prioridad.",
+    posicion:"De pie (o SENTADO si querés proteger la lumbar), mancuernas a los costados, codos LIGERAMENTE FLEXIONADOS y fijos.",
+    ejecucion:["Subí los brazos HACIA LOS COSTADOS hasta la altura de los hombros. NO más arriba.",
+      "Imaginá que 'liderás con los codos', no con las manos.",
+      "Bajá controlado en 2-3 s."],
+    errores:["Usar demasiado peso y ayudarse con el torso (balanceo)","Subir por encima del hombro (molesta el hombro)","Encoger el cuello","Agarrar las mancuernas con fuerza innecesaria"],
+    adaptacion:"Si lo hacés de pie y sentís la lumbar, HACELO SENTADO con la espalda apoyada. Carga liviana: este ejercicio no necesita peso alto, necesita CONTROL."
+  },
+  "triceps-polea": {
+    nombre:"Extensión de tríceps en polea alta", carga:"Moderada",
+    para:"Tríceps.",
+    posicion:"De pie frente a la polea alta (con cuerda o barra). CODOS PEGADOS AL TORSO y fijos. Torso ligeramente inclinado al frente, LUMBAR NEUTRA.",
+    ejecucion:["Empujá la cuerda hacia abajo EXTENDIENDO SOLO EL CODO. Si es cuerda, separá las puntas al final.",
+      "Apretá el tríceps 1 s abajo.",
+      "Volvé controlado dejando que el codo se flexione, SIN mover el hombro."],
+    errores:["Mover los codos (se convierte en un ejercicio de espalda)","Inclinarse y 'empujar con el cuerpo'","Rango corto"],
+    adaptacion:"NO te inclines hacia adelante redondeando la espalda. Peso moderado: si necesitás inclinarte mucho para empujar, es demasiado peso. Si no tenés cuerda ni barra: extensión sobre la cabeza con una mancuerna a dos manos."
+  },
+  "curl-biceps": {
+    nombre:"Curl de bíceps", carga:"Moderada",
+    para:"Bíceps.",
+    posicion:"De pie o SENTADO CON RESPALDO (mejor para tu lumbar). Codos pegados al torso, mancuernas con las palmas hacia adelante.",
+    ejecucion:["Subí SOLO flexionando el codo, sin mover el hombro ni el torso.",
+      "Apretá arriba, bajá LENTO 2-3 s."],
+    errores:["Balancearse hacia atrás para subir","Mover los codos hacia adelante","Soltar el peso de golpe","Rango parcial"],
+    adaptacion:"SENTADO CON RESPALDO evita el balanceo y te protege la lumbar. Nada de 'trampa' con la espalda: es un ejercicio de brazo, no de cuerpo entero."
+  },
+  "hip-thrust": {
+    nombre:"Hip thrust", carga:"Encontrar en la semana 1",
+    para:"Glúteo con la lumbar completamente SEGURA (estás apoyado, no se carga). Es uno de tus ejercicios más importantes: trabaja la cadera sin comprometer la columna.",
+    posicion:"ESPALDA ALTA APOYADA EN UN BANCO (el borde a la altura de los omóplatos), pies en el piso al ancho de hombros, rodillas flexionadas ~90° arriba. El peso (barra del Smith o disco) apoyado SOBRE LA CADERA, con algo blando debajo para que no moleste.",
+    ejecucion:["Empujá con los TALONES y subí la cadera hasta que el cuerpo quede EN LÍNEA RECTA entre hombros y rodillas.",
+      "APRETÁ EL GLÚTEO FUERTE ARRIBA 1-2 s.",
+      "Bajá controlado sin apoyar del todo y volvé a subir."],
+    errores:["ARQUEAR LA LUMBAR ARRIBA (el error clásico y el que más importa evitar en tu caso)","Empujar con la punta de los pies en vez de los talones","Barbilla al pecho","Rango corto"],
+    adaptacion:"LA LUMBAR NO DEBE ARQUEARSE ARRIBA. Subí SOLO hasta la línea recta: si sentís que la espalda se arquea para ganar altura, ESTÁS SUBIENDO DEMASIADO. El movimiento es de CADERA, no de espalda. Si la barra sobre la cadera te molesta, usá un disco envuelto o hacelo a una pierna sin peso. Si no tenés banco firme: puente de glúteo en el piso."
+  },
+  "pull-through": {
+    nombre:"Pull-through en polea baja", carga:"Menos peso del que creés",
+    para:"Es un patrón de BISAGRA DE CADERA SIN CARGA SOBRE LA COLUMNA: entrenás el gesto del peso muerto sin el riesgo. Es tu sustituto del peso muerto.",
+    posicion:"De espaldas a la polea baja, cuerda entre las piernas, PIES MÁS ANCHOS QUE LOS HOMBROS. Agarrá la cuerda por detrás y ALEJATE para que haya tensión.",
+    ejecucion:["Con la ESPALDA RECTA, llevá la cadera hacia atrás (como si cerraras un cajón con el trasero) y dejá que los brazos se estiren.",
+      "Cuando sientas el estiramiento en los isquios, EMPUJÁ LA CADERA HACIA ADELANTE apretando el glúteo. Los brazos solo acompañan.",
+      "Rodillas ligeramente flexionadas y FIJAS: el movimiento es de cadera, no de rodilla."],
+    errores:["REDONDEAR LA ESPALDA al bajar","Hacerlo con las rodillas (sentadilla) en vez de la cadera","Usar los brazos para tirar","Recorrido corto"],
+    adaptacion:"Es tu ejercicio CLAVE para la cadena posterior. ESPALDA RECTA en todo momento: si se redondea, es demasiado peso o demasiado recorrido. Es un ejercicio donde MENOS PESO Y MÁS TÉCNICA rinde más."
+  },
+  "prensa-pies-altos": {
+    nombre:"Prensa de piernas (pies muy altos)", carga:"Encontrar en la semana 1",
+    para:"En esta sesión se usa con PIES MUY ALTOS para desplazar el trabajo hacia GLÚTEO E ISQUIOS en vez de cuádriceps.",
+    posicion:"Igual que la prensa normal, pero LOS PIES MUCHO MÁS ARRIBA en la plataforma, casi en el borde superior.",
+    ejecucion:["Bajada controlada 2-3 s.",
+      "Cadera PEGADA al asiento.",
+      "Sin bloquear la rodilla arriba."],
+    errores:["Despegar la cadera","Bloquear la rodilla","Bajar más de lo que permite la cadera"],
+    adaptacion:"PIES ALTOS = MÁS CADERA, MENOS RODILLA. Justo lo que necesitás. Si con los pies altos la rodilla está más cómoda, este puede ser tu ejercicio de prensa principal."
+  },
+  "patada-gluteo": {
+    nombre:"Patada de glúteo en polea baja", carga:"Liviana",
+    para:"Aísla el glúteo. Es el último ejercicio de la sesión porque es accesorio.",
+    posicion:"Correa o tobillera en el TOBILLO, frente a la polea baja. Inclinate ligeramente al frente y APOYATE EN LA ESTRUCTURA con las manos (esto protege tu lumbar).",
+    ejecucion:["Llevá la pierna HACIA ATRÁS, con la rodilla ligeramente flexionada y fija.",
+      "Apretá el glúteo arriba 1 s. NO arquees la lumbar para ganar rango: el movimiento es de cadera.",
+      "Volvé controlado."],
+    errores:["Arquear la lumbar para ganar rango","No apoyarse con las manos","Usar impulso","Rango excesivo"],
+    adaptacion:"APOYATE SIEMPRE CON LAS MANOS. Sin apoyo, este ejercicio invita a arquear la lumbar. Rango corto y controlado. Si no tenés tobillera: puente de glúteo a una pierna."
+  },
+  "jalon": {
+    nombre:"Jalón al pecho en polea alta", carga:"Encontrar en la semana 1",
+    para:"Espalda (dorsal) sin cargar la lumbar, porque estás sentado con el muslo sujeto.",
+    posicion:"Sentado, MUSLOS BIEN SUJETOS bajo las almohadillas, pies firmes. Agarre algo más ancho que los hombros. Torso ligeramente inclinado hacia atrás (10-15°), sin ser un balanceo.",
+    ejecucion:["BAJÁ LOS HOMBROS PRIMERO (como si los alejaras de las orejas) y DESPUÉS traé la barra al pecho.",
+      "Traé la barra hasta la parte alta del pecho, NO a la nuca.",
+      "Volvé controlado dejando que la espalda se estire arriba, sin soltar de golpe."],
+    errores:["Tirar con los brazos y no con la espalda","Llevar la barra a la nuca","Balancearse hacia atrás","Encoger los hombros"],
+    adaptacion:"NADA DE BALANCEO LUMBAR para mover más peso. Si necesitás tirarte hacia atrás como un remo, es demasiado peso. Sentate bien y APRETÁ EL ABDOMEN durante la serie."
+  },
+  "remo-sentado": {
+    nombre:"Remo sentado en polea baja", carga:"Encontrar en la semana 1",
+    para:"Espalda media y dorsal. Es tu SUSTITUTO del remo con barra inclinado, que en tu caso está prohibido por la lumbar.",
+    posicion:"Sentado, RODILLAS LIGERAMENTE FLEXIONADAS, pies en la plataforma. ESPALDA RECTA. Torso perpendicular al piso o apenas inclinado atrás.",
+    ejecucion:["Tirá del maneral hacia el ABDOMEN, llevando los codos HACIA ATRÁS Y PEGADOS AL CUERPO.",
+      "APRETÁ LOS OMÓPLATOS cuando el maneral llega (eso es el ejercicio, no el movimiento del brazo).",
+      "Volvé controlado dejando que los omóplatos se separen, SIN redondear la espalda."],
+    errores:["Balancear el torso (se pierde el estímulo y se carga la lumbar)","Redondear la espalda al estirar","Tirar con los brazos sin apretar los omóplatos","Encoger los hombros"],
+    adaptacion:"ESPALDA RECTA SIEMPRE. Si el torso empieza a balancearse arriba y abajo, estás usando demasiado peso. El torso se queda QUIETO: lo que se mueve son los brazos y los omóplatos. Si no tenés polea baja: remo con mancuerna apoyado en banco."
+  },
+  "press-militar": {
+    nombre:"Press militar sentado con mancuernas", carga:"Encontrar en la semana 1",
+    para:"Hombro (deltoides frontal) y tríceps. SENTADO CON RESPALDO para proteger la lumbar.",
+    posicion:"Sentado en banco CON RESPALDO (idealmente a 80-90°), mancuernas a la ALTURA DE LOS HOMBROS, palmas hacia adelante o ligeramente giradas. Pies firmes.",
+    ejecucion:["Empujá las mancuernas HACIA ARRIBA, sin chocarlas entre sí.",
+      "Extendé SIN BLOQUEAR con violencia.",
+      "Bajá controlado hasta la altura de los hombros."],
+    errores:["Arquear la lumbar para empujar","Hacerlo DE PIE (carga la lumbar directamente)","Bajar demasiado las mancuernas (forzar el hombro)","Bloquear los codos de golpe"],
+    adaptacion:"SIEMPRE SENTADO CON RESPALDO, NUNCA DE PIE. De pie, el press militar carga la lumbar directamente. Si el hombro molesta, cambiá a agarre neutro (palmas enfrentadas)."
+  },
+  "remo-mancuerna": {
+    nombre:"Remo con mancuerna a una mano (apoyado)", carga:"Encontrar en la semana 1",
+    para:"Espalda, un lado por vez. Lo bueno: te apoyás en el banco, así que la lumbar queda protegida.",
+    posicion:"UNA MANO Y UNA RODILLA APOYADAS EN EL BANCO; la otra pierna en el piso. Espalda PARALELA AL PISO Y RECTA. La mancuerna cuelga del brazo estirado.",
+    ejecucion:["Tirá de la mancuerna HACIA LA CADERA, con el codo pegado al cuerpo.",
+      "APRETÁ EL OMÓPLATO arriba.",
+      "Bajá controlado hasta estirar el brazo, sin dejar caer la espalda."],
+    errores:["Retorcer la espalda para ganar rango","No apoyarse","Tirar con el brazo sin apretar el omóplato","Usar impulso"],
+    adaptacion:"EL APOYO ES LO QUE LO HACE SEGURO. Espalda recta y paralela; no la retuerzas para ganar rango. Si la espalda empieza a girar, es demasiado peso."
+  },
+  "face-pull": {
+    nombre:"Face pull en polea alta", carga:"LIVIANA, siempre",
+    para:"Salud del hombro. Trabaja la parte de atrás del hombro y los rotadores, que es lo que previene molestias cuando hacés mucho press.",
+    posicion:"Frente a la polea alta con CUERDA. Agarre con las palmas enfrentadas, brazos extendidos al frente a la altura de la cara.",
+    ejecucion:["Tirá la cuerda HACIA LA CARA, separando las puntas y llevando los codos HACIA ATRÁS Y ARRIBA.",
+      "Terminá con los brazos en 'doble bíceps' frente a la cara, apretando 1 s.",
+      "Volvé controlado."],
+    errores:["Usar peso alto","Balancear el torso","Tirar hacia el pecho en vez de hacia la cara"],
+    adaptacion:"CARGA LIVIANA, SIEMPRE. Este ejercicio no es para mover peso, es para mantener el hombro sano. Torso quieto, sin balanceo. Si no tenés cuerda: aperturas inversas con mancuernas inclinado, o banda."
+  },
+  "curl-martillo": {
+    nombre:"Curl martillo", carga:"Moderada",
+    para:"Bíceps y ANTEBRAZO. Con agarre neutro (pulgares arriba) trabaja el braquial, que da grosor al brazo.",
+    posicion:"De pie o SENTADO CON RESPALDO, mancuernas a los costados con LAS PALMAS MIRÁNDOSE.",
+    ejecucion:["Subí flexionando el codo, SIN rotar la muñeca: la palma mira al cuerpo todo el tiempo.",
+      "Apretá arriba, bajá lento 2-3 s."],
+    errores:["Balancearse","Rotar la muñeca","Soltar el peso de golpe"],
+    adaptacion:"Sentado con respaldo, sin balanceo."
+  },
+  "puente-gluteo": {
+    nombre:"Puente de glúteo en el piso (reemplazo)", carga:"Peso corporal, o disco sobre la cadera",
+    para:"Reemplazo del hip thrust y de la patada de glúteo cuando falta banco firme o tobillera.",
+    posicion:"Boca arriba, rodillas flexionadas, PIES PLANOS al ancho de hombros.",
+    ejecucion:["Empujá con los TALONES y subí la cadera hasta la línea recta hombros-rodillas.",
+      "APRETÁ EL GLÚTEO 2 segundos arriba.",
+      "Bajá sin apoyar del todo y volvé a subir.",
+      "A UNA PIERNA si querés más dificultad (es el reemplazo directo de la patada de glúteo)."],
+    errores:["ARQUEAR LA LUMBAR ARRIBA","Empujar con la punta de los pies","Subir más de la línea recta","Rango corto"],
+    adaptacion:"LA LUMBAR NO SE ARQUEA ARRIBA. Subí solo hasta la línea recta. Si la espalda se arquea para ganar altura, ESTÁS SUBIENDO DEMASIADO."
+  },
+  "curl-nordico": {
+    nombre:"Curl nórdico asistido (alternativa)", carga:"Peso corporal",
+    para:"La versión sin peso más EFECTIVA que existe para los isquios. También la MÁS DURA.",
+    posicion:"DE RODILLAS sobre algo blando. Los TOBILLOS TRABADOS bajo algo firme: el borde de un sofá pesado, una barra cargada en el piso, o los pies de alguien que te sostenga.",
+    ejecucion:["Con la CADERA EXTENDIDA (no la dobles), dejate caer HACIA ADELANTE LO MÁS LENTO QUE PUEDAS. Los isquios frenan la caída.",
+      "PARÁ CON LAS MANOS antes de llegar al piso.",
+      "Empujá con las manos para volver arriba."],
+    errores:["Bajar más de lo que podés frenar (si bajás de golpe, no estás entrenando: estás cayendo)","Doblar la cadera","Hacerlo todos los días"],
+    adaptacion:"EMPEZÁ MUY CORTO: no bajes más de 20-30° y volvé. Provoca DOLOR MUSCULAR FUERTE a las 48 h (es excéntrico puro): hacelo UN SOLO DÍA POR SEMANA y no el mismo día que la prensa pesada. Con rodilla sin diagnosticar, andá con cuidado: si molesta, dejalo y quedate con la mancuerna entre los pies. Usalo como REMATE: 2-3 series de 3-5 reps bien lentas."
+  }
+};
+
+/* ============================================================
+   2. LAS 4 SESIONES
+   musculo -> se usa para sumar el volumen semanal
+   ============================================================ */
+const SESIONES = {
+  D1:{ nombre:"Día 1 (Lunes) — Pierna A", foco:"Cuádriceps y gemelos", dur:"80 min", ejercicios:[
+    {id:"hack-squat",       nom:"Hack squat",                musculo:"Cuádriceps",      series:4, rango:"8-12",  rir:"1-3"},
+    {id:"prensa",           nom:"Prensa de piernas",         musculo:"Cuádriceps",      series:4, rango:"12-15", rir:"1-3"},
+    {id:"extension-rodillas",nom:"Extensión de rodillas",    musculo:"Cuádriceps",      series:3, rango:"15-20", rir:"últ. 0-1"},
+    {id:"curl-femoral",     nom:"Curl femoral",              musculo:"Glúteo / isquios",series:3, rango:"10-15", rir:"últ. 0-1", nota:"sin máquina: ver técnica"},
+    {id:"gemelos-pie",      nom:"Gemelos de pie en Smith",   musculo:"Gemelos",         series:4, rango:"10-15", rir:"0-1"},
+    {id:"gemelo-sentado",   nom:"Gemelo sentado",            musculo:"Gemelos",         series:3, rango:"15-20", rir:"0-1"},
+    {id:"mcgill",           nom:"McGill Big 3",              musculo:"Core",            series:3, rango:"rondas",rir:"—"}
+  ]},
+  D2:{ nombre:"Día 2 (Martes) — Torso A", foco:"Empuje", dur:"70 min", ejercicios:[
+    {id:"press-banca",      nom:"Press banca en Smith",      musculo:"Pecho",  series:4, rango:"6-10",  rir:"1-3"},
+    {id:"press-inclinado",  nom:"Press inclinado mancuernas",musculo:"Pecho",  series:3, rango:"8-12",  rir:"1-3"},
+    {id:"pec-deck",         nom:"Pec deck",                  musculo:"Pecho",  series:3, rango:"10-15", rir:"últ. 0-1"},
+    {id:"laterales",        nom:"Elevaciones laterales",     musculo:"Hombro", series:4, rango:"12-15", rir:"últ. 0-1"},
+    {id:"triceps-polea",    nom:"Extensión tríceps polea",   musculo:"Tríceps",series:3, rango:"10-15", rir:"últ. 0-1"},
+    {id:"curl-biceps",      nom:"Curl de bíceps",            musculo:"Bíceps", series:3, rango:"10-12", rir:"últ. 0-1"}
+  ]},
+  D3:{ nombre:"Día 3 (Jueves) — Pierna B", foco:"Cadena posterior, glúteo y gemelos", dur:"80 min", ejercicios:[
+    {id:"hip-thrust",       nom:"Hip thrust",                musculo:"Glúteo / isquios",series:4, rango:"8-12",  rir:"1-3"},
+    {id:"pull-through",     nom:"Pull-through polea baja",   musculo:"Glúteo / isquios",series:3, rango:"12-15", rir:"1-3"},
+    {id:"prensa-pies-altos",nom:"Prensa (pies muy altos)",   musculo:"Cuádriceps",      series:3, rango:"12-15", rir:"1-3"},
+    {id:"curl-femoral",     nom:"Curl femoral",              musculo:"Glúteo / isquios",series:4, rango:"10-15", rir:"últ. 0-1", nota:"sin máquina: ver técnica"},
+    {id:"patada-gluteo",    nom:"Patada de glúteo",          musculo:"Glúteo / isquios",series:2, rango:"12-15 /pierna", rir:"0-1"},
+    {id:"gemelos-pie",      nom:"Gemelos de pie en Smith",   musculo:"Gemelos",         series:4, rango:"10-15", rir:"0-1"},
+    {id:"mcgill",           nom:"McGill Big 3",              musculo:"Core",            series:3, rango:"rondas",rir:"—"}
+  ]},
+  D4:{ nombre:"Día 4 (Viernes) — Torso B", foco:"Tirón", dur:"70 min", ejercicios:[
+    {id:"jalon",            nom:"Jalón al pecho",            musculo:"Espalda",series:4, rango:"8-12",  rir:"1-3"},
+    {id:"remo-sentado",     nom:"Remo sentado en polea",     musculo:"Espalda",series:4, rango:"8-12",  rir:"1-3"},
+    {id:"press-militar",    nom:"Press militar sentado",     musculo:"Hombro", series:3, rango:"8-12",  rir:"1-3"},
+    {id:"remo-mancuerna",   nom:"Remo mancuerna 1 mano",     musculo:"Espalda",series:3, rango:"10-12", rir:"1-3"},
+    {id:"face-pull",        nom:"Face pull",                 musculo:"Espalda",series:3, rango:"15-20", rir:"1"},
+    {id:"curl-martillo",    nom:"Curl martillo",             musculo:"Bíceps", series:3, rango:"10-12", rir:"últ. 0-1"}
+  ]}
+};
+
+/* Objetivo de volumen semanal, en series.
+   Se puede verificar: la app calcula el total del plan y avisa si no coincide. */
+const OBJETIVO_VOLUMEN = {
+  "Cuádriceps":14, "Glúteo / isquios":16, "Gemelos":11, "Pecho":10,
+  "Hombro":7, "Espalda":14, "Bíceps":6, "Tríceps":3, "Core":6
+};
+
+const SEMANA_MALA = ["Hack squat 3 × 8-12","Prensa 3 × 12-15","Gemelos 3 × 12-15"];
+
+/* ============================================================
+   3. ESTADO Y GUARDADO
+   ============================================================ */
+const CLAVE = "gym-entrenamiento-v1";
+
+/* SELLO DE VERSIÓN. Sirve para una cosa concreta: cuando copies el archivo al
+   teléfono o lo publiques en un enlace, poder comprobar que esa copia es la
+   MISMA que la de la computadora. Si los números no coinciden, quedó vieja.
+
+   ⚠ ACTUALIZAR ESTE NÚMERO CADA VEZ QUE SE CAMBIE LA APP.
+   No hacerlo ya fue un error: el sello quedó en v24 mientras la app iba por la
+   v30, así que no servía para comparar nada.
+
+   Historial: v24 app creada · v25 iPhone · v26 diálogos propios ·
+   v29 pestaña Comidas · v30 Mis alimentos. */
+const VERSION = "v30 · 2026-10-05";
+
+let ESTADO = {sesiones:[]};
+
+function cargar(){
+  try{
+    const bruto = localStorage.getItem(CLAVE);
+    if(bruto){ const o = JSON.parse(bruto); if(o && Array.isArray(o.sesiones)) ESTADO = o; }
+  }catch(e){ console.warn("No se pudo leer lo guardado:", e); }
+}
+function guardar(){
+  try{ localStorage.setItem(CLAVE, JSON.stringify(ESTADO)); return true; }
+  catch(e){ console.warn("No se pudo guardar:", e); return false; }
+}
+const hoyISO = () => new Date().toISOString().slice(0,10);
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+                    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const n = v => { const x = parseFloat(v); return isNaN(x)?null:x; };
+
+/* Semana ISO de lunes a domingo, como texto "2026-W41" */
+function semanaDe(fechaISO){
+  const d = new Date(fechaISO + "T12:00:00");
+  if(isNaN(d)) return "sin-fecha";
+  const dia = (d.getDay() + 6) % 7;          // 0 = lunes
+  d.setDate(d.getDate() - dia + 3);          // jueves de esa semana
+  const jueves = new Date(d);
+  const ene4 = new Date(jueves.getFullYear(), 0, 4);
+  const sem = 1 + Math.round(((jueves - ene4)/86400000 - 3 + ((ene4.getDay()+6)%7))/7);
+  return jueves.getFullYear() + "-W" + String(sem).padStart(2,"0");
+}
+function lunesDe(fechaISO){
+  const d = new Date(fechaISO + "T12:00:00");
+  const dia = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - dia);
+  return d.toISOString().slice(0,10);
+}
+
+/* ============================================================
+   4. REGISTRAR
+   ============================================================ */
+let BORRADOR = null;   // {fecha, dia, sueno, estres, dl, dr, notas, series:{clave:[{peso,reps,rir}]}}
+
+/* ⚠ BUG CORREGIDO (2026-10-04): acá había una función `claveEj(i)` que armaba la
+   clave leyendo BORRADOR.dia. Pero nuevoBorrador() se llama JUSTAMENTE para
+   CREAR BORRADOR, así que en ese momento BORRADOR todavía es null y la línea
+   reventaba con "Cannot read properties of null (reading 'dia')".
+   Consecuencia: iniciar() lanzaba el error y LA APP QUEDABA EN BLANCO.
+   No lo detectaba el análisis estático: apareció al EJECUTAR la app con un DOM
+   simulado. Ahora la clave se arma con `b.dia`, que ya existe. */
+function nuevoBorrador(dia){
+  const b = {fecha:hoyISO(), dia:dia || "D1", sueno:"", estres:"", dl:"", dr:"", notas:"", series:{}};
+  const s = SESIONES[b.dia];
+  s.ejercicios.forEach((e,i)=>{ b.series[b.dia + "#" + i] = []; });
+  return b;
+}
+/* recalcula las claves cuando cambia el día */
+function reiniciarSeries(){
+  const s = SESIONES[BORRADOR.dia];
+  const nuevo = {};
+  s.ejercicios.forEach((e,i)=>{
+    const viejas = BORRADOR.series[BORRADOR.dia + "#" + i];
+    nuevo[BORRADOR.dia + "#" + i] = Array.isArray(viejas) ? viejas : [];
+  });
+  BORRADOR.series = nuevo;
+}
+
+function ultimaVez(idEj, nom){
+  // busca en el historial la última vez que se hizo ese ejercicio
+  const ord = ESTADO.sesiones.slice().sort((a,b)=> (b.fecha||"").localeCompare(a.fecha||""));
+  for(const s of ord){
+    const lista = (s.ejercicios||[]);
+    for(const e of lista){
+      if(e.id===idEj || e.nom===nom){
+        if(e.series && e.series.length) return {fecha:s.fecha, series:e.series};
+      }
+    }
+  }
+  return null;
+}
+
+function pintarRegistrar(){
+  const sel = document.getElementById("dia");
+  if(!sel.options.length){
+    Object.keys(SESIONES).forEach(k=>{
+      const o = document.createElement("option");
+      o.value = k; o.textContent = SESIONES[k].nombre;
+      sel.appendChild(o);
+    });
+  }
+  sel.value = BORRADOR.dia;
+  document.getElementById("fecha").value = BORRADOR.fecha;
+  document.getElementById("sueno").value = BORRADOR.sueno;
+  document.getElementById("estres").value = BORRADOR.estres;
+  document.getElementById("dl").value = BORRADOR.dl;
+  document.getElementById("dr").value = BORRADOR.dr;
+  document.getElementById("notas").value = BORRADOR.notas;
+
+  const s = SESIONES[BORRADOR.dia];
+  const cont = document.getElementById("listaEjercicios");
+  let html = '<div class="card"><h3 style="margin-top:0">' + esc(s.nombre) + '</h3>' +
+             '<div class="mini">' + esc(s.foco) + ' · ' + esc(s.dur) + '</div>';
+  s.ejercicios.forEach((e,i)=>{
+    const k = BORRADOR.dia + "#" + i;
+    const hechas = BORRADOR.series[k] || [];
+    const ant = ultimaVez(e.id, e.nom);
+    let ref = "";
+    if(ant && ant.series.length){
+      ref = '<div class="mini" style="margin:6px 0">La última vez (' + esc(ant.fecha) + '): <b>' +
+            ant.series.map(x=> x.peso + '×' + x.reps).join(' · ') + '</b></div>';
+    } else {
+      ref = '<div class="mini" style="margin:6px 0">Todavía no hay registro de este ejercicio.</div>';
+    }
+    html += '<div style="border-top:1px solid var(--linea);margin-top:14px;padding-top:10px">' +
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap">' +
+      '<b>' + esc(e.nom) + '</b>' +
+      '<span class="mini">' + e.series + ' × ' + esc(e.rango) + ' · RIR ' + esc(e.rir) +
+      ' · <span class="chip g">' + esc(e.musculo) + '</span></span></div>' +
+      ref +
+      '<div class="fila" style="margin-top:4px">' +
+      '<div><label>Peso (lb)</label><input type="number" inputmode="decimal" data-p="' + k + '" placeholder="90"></div>' +
+      '<div><label>Reps</label><input type="number" inputmode="numeric" data-r="' + k + '" placeholder="10"></div>' +
+      '<div><label>RIR</label><input type="number" inputmode="numeric" data-f="' + k + '" placeholder="2"></div>' +
+      '<div style="flex:0 0 auto"><button class="acc" data-add="' + k + '">+ Serie</button></div>' +
+      '</div>';
+    if(hechas.length){
+      html += '<div style="margin-top:8px">';
+      hechas.forEach((x,j)=>{
+        html += '<div class="serie"><b>' + (j+1) + '</b><span>' + x.peso + ' lb</span><span class="sp"></span>' +
+                '<span>' + x.reps + ' reps</span><span class="sp"></span>' +
+                '<span>RIR ' + (x.rir===null||x.rir==="" ? "—" : x.rir) + '</span>' +
+                '<button class="mini" data-del="' + k + '|' + j + '">✕</button></div>';
+      });
+      html += '</div>';
+      const tot = hechas.reduce((a,x)=> a + (n(x.peso)||0)*(n(x.reps)||0), 0);
+      html += '<div class="hecho">' + hechas.length + ' de ' + e.series + ' series hechas · volumen ' +
+              Math.round(tot).toLocaleString("es-HN") + ' lb</div>';
+      if(hechas.length > e.series) html += '<div class="aviso">Hiciste más series que el objetivo (' +
+              e.series + '). Está bien si te sobraba energía, pero <b>no subas el volumen del plan</b>: la prioridad es progresar la carga.</div>';
+    }
+    html += '</div>';
+  });
+  html += '<div style="border-top:1px solid var(--linea);margin-top:14px;padding-top:10px">' +
+          '<b>Si no llegás a la sesión completa</b><div class="mini">Sesión mínima, 25 min: <b>' +
+          SEMANA_MALA.join(" · ") + '</b>. Con eso la pierna NO pierde el estímulo. Una sesión corta es mejor que ninguna, y muchísimo mejor que compensar con dos apiladas.</div></div>';
+  html += '</div>';
+  cont.innerHTML = html;
+
+  // estado de la sesión: si ya existe una guardada con esa fecha y día
+  const ya = ESTADO.sesiones.find(x=> x.fecha===BORRADOR.fecha && x.dia===BORRADOR.dia);
+  document.getElementById("estadoSesion").innerHTML = ya
+    ? '<div class="bien">Ya hay una sesión guardada con esta fecha y este día. Si volvés a guardar, se reemplaza.</div>'
+    : '<div class="mini">Sin guardar todavía.</div>';
+}
+
+function leerCampos(){
+  BORRADOR.fecha = document.getElementById("fecha").value || hoyISO();
+  BORRADOR.sueno = document.getElementById("sueno").value;
+  BORRADOR.estres = document.getElementById("estres").value;
+  BORRADOR.dl = document.getElementById("dl").value;
+  BORRADOR.dr = document.getElementById("dr").value;
+  BORRADOR.notas = document.getElementById("notas").value;
+}
+
+function alHacerClic(ev){
+  const t = ev.target;
+  if(t.dataset.add !== undefined && t.dataset.add !== ""){
+    const k = t.dataset.add;
+    const peso = n(document.querySelector('[data-p="'+k+'"]').value);
+    const reps = n(document.querySelector('[data-r="'+k+'"]').value);
+    const rir  = document.querySelector('[data-f="'+k+'"]').value;
+    if(peso===null || reps===null){
+      avisar("Poné al menos el peso y las repeticiones.", "malo");
+      return;
+    }
+    leerCampos();
+    (BORRADOR.series[k] = BORRADOR.series[k] || []).push({peso:peso, reps:reps, rir:rir});
+    pintarRegistrar();
+    const inp = document.querySelector('[data-p="'+k+'"]');
+    if(inp) inp.focus();
+    return;
+  }
+  if(t.dataset.del){
+    const [k,j] = t.dataset.del.split("|");
+    leerCampos();
+    BORRADOR.series[k].splice(parseInt(j,10),1);
+    pintarRegistrar();
+    return;
+  }
+  if(t.id === "guardar"){
+    leerCampos();
+    const s = SESIONES[BORRADOR.dia];
+    const ejercicios = s.ejercicios.map((e,i)=>{
+      const k = BORRADOR.dia + "#" + i;
+      return {id:e.id, nom:e.nom, musculo:e.musculo, objetivo:e.series, series:(BORRADOR.series[k]||[]).slice()};
+    });
+    const totalSeries = ejercicios.reduce((a,e)=> a + e.series.length, 0);
+    if(totalSeries === 0){
+      document.getElementById("msgGuardar").innerHTML =
+        '<div class="aviso">No cargaste ninguna serie. Poné al menos una antes de guardar.</div>';
+      return;
+    }
+    const nueva = {fecha:BORRADOR.fecha, dia:BORRADOR.dia, nombre:s.nombre,
+      sueno:n(BORRADOR.sueno), estres:n(BORRADOR.estres), dl:n(BORRADOR.dl), dr:n(BORRADOR.dr),
+      notas:BORRADOR.notas, ejercicios:ejercicios};
+    const idx = ESTADO.sesiones.findIndex(x=> x.fecha===nueva.fecha && x.dia===nueva.dia);
+    if(idx >= 0) ESTADO.sesiones[idx] = nueva; else ESTADO.sesiones.push(nueva);
+    const ok = guardar();
+    document.getElementById("msgGuardar").innerHTML = ok
+      ? '<div class="bien">Guardado: ' + totalSeries + ' series en ' + esc(nueva.fecha) + '. Andá a <b>Progreso</b> o <b>Volumen</b> para verlo.</div>'
+      : '<div class="aviso"><b>No se pudo guardar en el navegador.</b> Usá <b>Mis datos → Descargar copia</b> para no perder lo cargado.</div>';
+    pintarTodo();
+    return;
+  }
+  if(t.id === "limpiar"){
+    pedirConfirmacion({
+      titulo: "¿Empezar de cero esta sesión?",
+      texto: "Se pierde lo que cargaste y todavía no guardaste.",
+      detalle: "Lo que ya está guardado NO se toca.",
+      boton: "Sí, limpiar",
+      peligro: true
+    }).then(function(seguro){
+      if(!seguro) return;
+      const d = BORRADOR.dia;
+      BORRADOR = nuevoBorrador(d);
+      pintarRegistrar();
+    });
+  }
+}
+
+/* ============================================================
+   5. PROGRESO
+   ============================================================ */
+function historialPorEjercicio(){
+  const mapa = {};
+  ESTADO.sesiones.slice().sort((a,b)=> (a.fecha||"").localeCompare(b.fecha||"")).forEach(s=>{
+    (s.ejercicios||[]).forEach(e=>{
+      if(!e.series || !e.series.length) return;
+      const k = e.id || e.nom;
+      if(!mapa[k]) mapa[k] = {nom:e.nom, musculo:e.musculo, puntos:[]};
+      const pesos = e.series.map(x=> n(x.peso)).filter(x=> x!==null);
+      const mejor = pesos.length ? Math.max.apply(null, pesos) : null;
+      const vol = e.series.reduce((a,x)=> a + (n(x.peso)||0)*(n(x.reps)||0), 0);
+      const repsTot = e.series.reduce((a,x)=> a + (n(x.reps)||0), 0);
+      mapa[k].puntos.push({fecha:s.fecha, mejor:mejor, vol:vol, series:e.series.length, reps:repsTot});
+    });
+  });
+  return mapa;
+}
+
+/* Gráfico de línea reutilizable. Acepta series de ENTRENAMIENTO (con `mejor`)
+   y series de MEDIDAS (con `v`), y recibe la unidad para rotular. */
+function grafico(puntos, unidad){
+  const u = unidad || "lb";
+  const w = 300, h = 96, pad = 22;
+  const vDe = p => (p.mejor !== undefined && p.mejor !== null) ? p.mejor : p.v;
+  const vals = puntos.map(vDe).filter(v=> v!==null && v!==undefined);
+  if(!vals.length) return "";
+  const max = Math.max.apply(null, vals), min = Math.min.apply(null, vals);
+  const rango = (max - min) || 1;
+  const paso = puntos.length > 1 ? (w - pad*2)/(puntos.length - 1) : 0;
+  let d = "", dots = "", ult = null;
+  puntos.forEach((p,i)=>{
+    const val = vDe(p);
+    if(val===null || val===undefined) return;
+    const x = pad + i*paso;
+    const y = h - pad - ((val - min)/rango)*(h - pad*2);
+    d += (d === "" ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+    dots += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.2" fill="#1668c4"></circle>';
+    ult = {x:x, y:y, v:val};
+  });
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" role="img" aria-label="Evolución">' +
+    '<line x1="'+pad+'" y1="'+(h-pad)+'" x2="'+(w-pad)+'" y2="'+(h-pad)+'" stroke="#d3d8de"/>' +
+    '<path d="'+d+'" fill="none" stroke="#1668c4" stroke-width="2"/>' + dots +
+    '<text x="'+pad+'" y="12" font-size="9" fill="#5b6470">máx '+max+' '+u+'</text>' +
+    '<text x="'+pad+'" y="'+(h-6)+'" font-size="9" fill="#5b6470">mín '+min+' '+u+'</text>' +
+    (ult ? '<text x="'+(ult.x-6)+'" y="'+(ult.y-7)+'" font-size="9" fill="#0f4c8f" font-weight="700">'+ult.v+'</text>' : '') +
+    '</svg>';
+}
+
+function pintarProgreso(){
+  const mapa = historialPorEjercicio();
+  const claves = Object.keys(mapa);
+  const cont = document.getElementById("progContenido");
+  if(!claves.length){
+    cont.innerHTML = '<div class="card"><div class="aviso">Todavía no hay sesiones guardadas. Cargá una en <b>Registrar</b> y acá vas a ver la evolución de cada ejercicio.</div></div>';
+    return;
+  }
+  let html = "";
+  claves.forEach(k=>{
+    const e = mapa[k];
+    const p = e.puntos;
+    const primero = p.find(x=> x.mejor!==null);
+    const ultimo = p.slice().reverse().find(x=> x.mejor!==null);
+    let delta = "";
+    if(primero && ultimo && primero !== ultimo && primero.mejor!==null && ultimo.mejor!==null){
+      const dif = ultimo.mejor - primero.mejor;
+      const color = dif > 0 ? "var(--ok)" : (dif < 0 ? "var(--alerta)" : "var(--gris)");
+      delta = '<span style="color:'+color+';font-weight:700">' + (dif>0?"+":"") + dif + ' lb</span>';
+    }
+    html += '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline">' +
+      '<b>'+esc(e.nom)+'</b><span class="mini"><span class="chip g">'+esc(e.musculo)+'</span> '+delta+'</span></div>' +
+      '<div class="tabla-scroll"><table><tr><th>Fecha</th><th class="num">Mejor serie</th><th class="num">Series</th><th class="num">Volumen</th></tr>';
+    p.slice().reverse().slice(0,8).forEach(x=>{
+      html += '<tr><td>'+esc(x.fecha)+'</td><td class="num">'+(x.mejor===null?"—":x.mejor+' lb')+'</td><td class="num">'+x.series+'</td><td class="num">'+Math.round(x.vol).toLocaleString("es-HN")+' lb</td></tr>';
+    });
+    html += '</table></div>' + grafico(p.slice(-12)) + '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+/* ============================================================
+   6. VOLUMEN
+   ============================================================ */
+function volumenSemana(semana){
+  const tot = {};
+  ESTADO.sesiones.forEach(s=>{
+    if(semanaDe(s.fecha) !== semana) return;
+    (s.ejercicios||[]).forEach(e=>{
+      if(!e.series || !e.series.length) return;
+      const m = e.musculo || "Otro";
+      tot[m] = (tot[m]||0) + e.series.length;
+    });
+  });
+  return tot;
+}
+
+function pintarVolumen(){
+  const cont = document.getElementById("volContenido");
+  const estaSem = semanaDe(hoyISO());
+  const tot = volumenSemana(estaSem);
+  const lunes = lunesDe(hoyISO());
+  let html = '<div class="card"><h3 style="margin-top:0">Semana del '+esc(lunes)+'</h3>';
+  const sesionesSem = ESTADO.sesiones.filter(s=> semanaDe(s.fecha)===estaSem)
+    .sort((a,b)=> (a.fecha||"").localeCompare(b.fecha||""));
+  if(sesionesSem.length){
+    html += '<div class="mini">Sesiones registradas esta semana: ' +
+      sesionesSem.map(s=> esc(s.fecha.slice(5)) + ' ' + esc(s.dia)).join(' · ') + '</div>';
+  } else {
+    html += '<div class="mini">Todavía no registraste ninguna sesión esta semana.</div>';
+  }
+  html += '</div>';
+
+  html += '<div class="card"><h3 style="margin-top:0">Series por músculo</h3><div class="tabla-scroll"><table>' +
+    '<tr><th>Músculo</th><th class="num">Hechas</th><th class="num">Objetivo</th><th style="width:140px">Cumplimiento</th></tr>';
+  Object.keys(OBJETIVO_VOLUMEN).forEach(m=>{
+    const obj = OBJETIVO_VOLUMEN[m];
+    const he = tot[m] || 0;
+    const pct = Math.min(100, Math.round(he/obj*100));
+    let clase = "barra";
+    if(he >= obj) clase += " ok"; else if(he > obj*1.25) clase += " alto";
+    html += '<tr><td>'+esc(m)+'</td><td class="num"><b>'+he+'</b></td><td class="num">'+obj+'</td>' +
+      '<td><div class="'+clase+'"><i style="width:'+pct+'%"></i></div><span class="mini">'+pct+'%</span></td></tr>';
+  });
+  html += '</table></div>';
+  html += '<div class="mini">La barra se pone <b>verde</b> cuando llegás al objetivo. Si te pasás mucho del objetivo, la app te avisa abajo: <b>no se sube más el volumen</b>, la prioridad pasa a ser progresar la carga.</div></div>';
+
+  // aviso si se pasó del objetivo
+  const pasados = Object.keys(OBJETIVO_VOLUMEN).filter(m=> (tot[m]||0) > OBJETIVO_VOLUMEN[m]*1.25);
+  if(pasados.length){
+    html += '<div class="aviso"><b>Te pasaste del objetivo en:</b> ' + pasados.map(esc).join(", ") +
+      '. Está bien si fue por una buena semana, pero <b>no conviertas el exceso en el nuevo plan</b>: más series tienen techo y la evidencia no se pone de acuerdo (Schoenfeld 2019 usó hasta 45 series de pierna con más crecimiento; Bernárdez-Vázquez 2022 dice que por encima de ~10 no agrega). Priorizá <b>subir la carga</b>.</div>';
+  }
+
+  // historial de semanas
+  const semanas = {};
+  ESTADO.sesiones.forEach(s=>{ const w = semanaDe(s.fecha); semanas[w] = (semanas[w]||0)+1; });
+  const ls = Object.keys(semanas).sort().reverse();
+  if(ls.length){
+    html += '<div class="card"><h3 style="margin-top:0">Semanas anteriores</h3><div class="tabla-scroll"><table>' +
+      '<tr><th>Semana</th><th class="num">Sesiones</th><th class="num">Series totales</th></tr>';
+    ls.slice(0,10).forEach(w=>{
+      const t = volumenSemana(w);
+      const total = Object.keys(t).reduce((a,k)=> a+t[k],0);
+      html += '<tr><td>'+esc(w)+'</td><td class="num">'+semanas[w]+'</td><td class="num">'+total+'</td></tr>';
+    });
+    html += '</table></div></div>';
+  }
+
+  // control del plan: el total del plan debe coincidir con el objetivo
+  const calc = {};
+  Object.keys(SESIONES).forEach(k=>{
+    SESIONES[k].ejercicios.forEach(e=>{ calc[e.musculo] = (calc[e.musculo]||0) + e.series; });
+  });
+  let discrepancias = [];
+  Object.keys(OBJETIVO_VOLUMEN).forEach(m=>{
+    if((calc[m]||0) !== OBJETIVO_VOLUMEN[m]) discrepancias.push(m + ": plan " + (calc[m]||0) + " vs objetivo " + OBJETIVO_VOLUMEN[m]);
+  });
+  if(discrepancias.length){
+    html += '<div class="aviso"><b>Control interno:</b> el volumen del plan no coincide con el objetivo en → ' +
+      esc(discrepancias.join(" · ")) + '. Revisar.</div>';
+  } else {
+    html += '<div class="bien"><b>Control interno:</b> el volumen semanal del plan coincide exactamente con el objetivo en los 9 grupos musculares. ✔</div>';
+  }
+  cont.innerHTML = html;
+}
+
+/* ============================================================
+   7. GUÍA DE EJERCICIOS
+   ============================================================ */
+function pintarGuia(filtro){
+  const f = (filtro||"").toLowerCase().trim();
+  const cont = document.getElementById("guiaContenido");
+  const porDia = {};
+  Object.keys(SESIONES).forEach(k=>{
+    SESIONES[k].ejercicios.forEach(e=>{
+      const vistos = porDia[k] = porDia[k] || [];
+      if(!vistos.some(x=> x.id===e.id)) vistos.push(e);
+    });
+  });
+  let html = "", mostrados = 0;
+  Object.keys(porDia).forEach(k=>{
+    const lista = porDia[k].filter(e=>{
+      const t = TECNICAS[e.id] || {};
+      const blob = (e.nom + " " + (t.para||"") + " " + e.musculo).toLowerCase();
+      return !f || blob.indexOf(f) >= 0;
+    });
+    if(!lista.length) return;
+    html += '<h3>' + esc(SESIONES[k].nombre) + '</h3>';
+    lista.forEach(e=>{
+      mostrados++;
+      const t = TECNICAS[e.id] || {};
+      html += '<details class="ej"><summary><span>'+esc(e.nom)+'</span>' +
+        '<span class="obj">'+e.series+' × '+esc(e.rango)+' · RIR '+esc(e.rir)+'</span></summary>' +
+        '<div class="cuerpo">' +
+        '<div style="margin:8px 0"><span class="chip">'+esc(e.musculo)+'</span>' +
+        (t.carga ? '<span class="chip g">Arranque: '+esc(t.carga)+'</span>' : '') + '</div>' +
+        figuraEjercicio(e.id) +
+        (t.para ? '<p><b>Para qué sirve.</b> '+esc(t.para)+'</p>' : '') +
+        (t.posicion ? '<p><b>Posición.</b> '+esc(t.posicion)+'</p>' : '') +
+        (t.ejecucion ? '<h3>Ejecución</h3><ol class="pasos">'+t.ejecucion.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>' : '') +
+        (t.errores ? '<h3>Errores que hay que evitar</h3><ul class="error">'+t.errores.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>' : '') +
+        (t.adaptacion ? '<div class="hecho"><b>⚠ Tu adaptación.</b> '+esc(t.adaptacion)+'</div>' : '') +
+        (t.nota ? '<div class="aviso">'+esc(t.nota)+'</div>' : '') +
+        (t.evidencia ? '<p class="mini">'+esc(t.evidencia)+'</p>' : '') +
+        '</div></details>';
+    });
+  });
+  if(!mostrados) html = '<div class="card"><div class="aviso">No encontré ningún ejercicio con "'+esc(filtro)+'".</div></div>';
+
+  html += '<h3>Adaptaciones y reemplazos</h3>' +
+    '<details class="ej"><summary><span>Curl femoral sin máquina — 5 alternativas</span><span class="obj">ver</span></summary><div class="cuerpo">' +
+    '<p><b>Por qué importa.</b> El curl entrena los isquios en su función de <b>flexionar la rodilla</b>. Hip thrust y pull-through los entrenan en <b>extender la cadera</b>. <b>Son funciones distintas y una no reemplaza a la otra.</b></p>' +
+    '<ol class="pasos">' +
+    '<li><b>A) Mancuerna entre los pies ⭐ LA RECOMENDADA.</b> Solo banco y mancuerna. Boca abajo con las rodillas en el borde, mancuerna sostenida entre los tobillos, flexioná solo la rodilla. Arrancá con 10-15 lb.</li>' +
+    '<li><b>B) Polea baja con tobillera.</b> Una pierna por vez, tumbado. Si no tenés tobillera, no es imprescindible.</li>' +
+    '<li><b>C) Nórdico asistido.</b> Muy efectivo y muy duro. Solo como remate, 1×/semana.</li>' +
+    '<li><b>D) Deslizante con toalla.</b> Avanzado. No es para empezar.</li>' +
+    '<li><b>E) Banda elástica.</b> La opción más liviana.</li>' +
+    '</ol>' +
+    '<div class="hecho"><b>⚠ En todas:</b> si la <b>cadera se levanta</b>, es demasiado peso. Levantarla convierte el ejercicio en una extensión de lumbar.</div>' +
+    '</div></details>' +
+    '<details class="ej"><summary><span>Reemplazos por equipamiento</span><span class="obj">ver</span></summary><div class="cuerpo">' +
+    '<div class="tabla-scroll"><table><tr><th>Si el plan dice</th><th>Y no tenés</th><th>Hacé esto</th></tr>' +
+    '<tr><td>Curl femoral</td><td>Máquina</td><td>Mancuerna entre los pies</td></tr>' +
+    '<tr><td>Pec deck</td><td>Máquina</td><td>Aperturas con mancuernas o press en el piso</td></tr>' +
+    '<tr><td>Face pull</td><td>Cuerda</td><td>Aperturas inversas con mancuernas, o banda</td></tr>' +
+    '<tr><td>Tríceps en polea</td><td>Barra o cuerda</td><td>Extensión sobre la cabeza con mancuerna</td></tr>' +
+    '<tr><td>Patada de glúteo</td><td>Tobillera</td><td>Puente de glúteo a una pierna</td></tr>' +
+    '<tr><td>Hip thrust</td><td>Banco firme</td><td>Puente de glúteo en el piso</td></tr>' +
+    '<tr><td>Remo sentado</td><td>Polea baja</td><td>Remo con mancuerna apoyado en banco</td></tr>' +
+    '<tr><td>Gemelos en Smith</td><td>Smith ocupada</td><td>Gemelos con mancuernas en un escalón</td></tr>' +
+    '<tr><td>Press banca en Smith</td><td>Smith</td><td>Press con mancuernas en banco plano</td></tr>' +
+    '</table></div></div></details>' +
+    '<details class="ej"><summary><span>Las 3 reglas de cada serie</span><span class="obj">ver</span></summary><div class="cuerpo">' +
+    '<ol class="pasos"><li><b>SENTATE entre series</b> (varicocele). El gatillo es estar de pie quieto, no el ejercicio.</li>' +
+    '<li><b>EXHALÁ en el esfuerzo.</b> Nunca más de 10 segundos por repetición.</li>' +
+    '<li><b>BAJADA controlada de 2-3 segundos.</b> La bajada es la mitad del estímulo.</li></ol>' +
+    '<div class="mini">Semáforo de dolor: <b>0-3</b> seguís y progresás · <b>4-5</b> reducís rango y carga 20-30 % · <b>más de 5, o dolor irradiado, hormigueo o pérdida de fuerza</b> → PARÁS. <i>Es criterio práctico, no viene de los papers.</i></div>' +
+    '</div></details>';
+
+  cont.innerHTML = html;
+}
+
+/* ============================================================
+   8. MIS DATOS
+   ============================================================ */
+/* ============================================================
+   SESIONES GUARDADAS — listar, cargar para editar y BORRAR UNA SOLA
+
+   Antes solo existía "borrar todo el historial", que para probar la app es
+   demasiado: no se podía guardar una sesión de prueba y sacarla después sin
+   perder el resto. Ahora cada sesión se borra por separado y, por si fue un
+   error, queda un botón de DESHACER.
+   ============================================================ */
+let ULTIMA_BORRADA = null;   // {sesion, posicion} para poder restaurarla
+
+function seriesDe(s){ return (s.ejercicios || []).reduce((a,e)=> a + ((e.series||[]).length), 0); }
+
+function pintarSesionesGuardadas(){
+  const conts = [document.getElementById("sesionesGuardadas"),
+                 document.getElementById("sesionesGuardadas2")].filter(Boolean);
+  if(!conts.length) return;
+
+  const ses = ESTADO.sesiones.slice().sort((a,b)=>
+    ((b.fecha||"") + (b.dia||"")).localeCompare((a.fecha||"") + (a.dia||"")));
+  const totalSeries = ses.reduce((a,s)=> a + seriesDe(s), 0);
+
+  let html = '<div class="card"><h3 style="margin-top:0">Sesiones guardadas' +
+    (ses.length ? ' <span class="chip g">'+ses.length+'</span>' : '') + '</h3>';
+
+  if(!ses.length){
+    html += '<div class="aviso" style="margin:8px 0 0">Todavía no hay ninguna sesión guardada. ' +
+      'Cuando guardes una, va a aparecer acá con un botón para borrarla.</div></div>';
+    conts.forEach(c => { c.innerHTML = html; });
+    return;
+  }
+
+  html += '<div class="mini">Total: <b>'+totalSeries+' series</b> en '+ses.length+
+    ' sesión(es). Cada una se puede <b>cargar</b> (para corregirla) o <b>borrar</b> sola.</div>';
+
+  if(ULTIMA_BORRADA){
+    html += '<div class="bien" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+      '<span>Borraste la sesión del <b>'+esc(ULTIMA_BORRADA.sesion.fecha)+'</b> ('+
+      esc(ULTIMA_BORRADA.sesion.dia)+').</span>' +
+      '<button class="mini" data-deshacer="1">Deshacer</button></div>';
+  }
+
+  html += '<div class="tabla-scroll" style="margin-top:8px"><table>' +
+    '<tr><th>Fecha</th><th>Sesión</th><th class="num">Series</th><th></th></tr>';
+  ses.forEach(s=>{
+    html += '<tr>' +
+      '<td>'+esc(s.fecha || "—")+'</td>' +
+      '<td>'+esc(String(s.nombre || s.dia || "").replace(/^Día \d+ \([^)]*\) — /,""))+
+        '<div class="mini">'+esc(s.dia||"")+'</div></td>' +
+      '<td class="num">'+seriesDe(s)+'</td>' +
+      '<td style="white-space:nowrap">' +
+        '<button class="mini" data-cargarses="'+esc(s.fecha)+'|'+esc(s.dia)+'">Cargar</button> ' +
+        '<button class="mini" data-borrarses="'+esc(s.fecha)+'|'+esc(s.dia)+'" title="Borrar esta sesión">✕</button>' +
+      '</td></tr>';
+  });
+  html += '</table></div>' +
+    '<div class="mini" style="margin-top:6px"><b>Cargar</b> trae las series de esa sesión al formulario de arriba, ' +
+    'por si te equivocaste en algo. Al volver a guardar, se reemplaza.</div>';
+  html += '</div>';
+  conts.forEach(c => { c.innerHTML = html; });
+}
+
+function buscarSesion(clave){
+  const partes = String(clave).split("|");
+  const fecha = partes[0], dia = partes[1];
+  return ESTADO.sesiones.find(s => (s.fecha||"") === fecha && (s.dia||"") === dia);
+}
+
+/* OJO: borrarSesion es ASÍNCRONA porque usa el diálogo propio.
+   Antes usaba confirm(), que en el navegador del iPhone está bloqueado y
+   devolvía false: el botón no hacía nada y la sesión quedaba guardada. */
+async function borrarSesion(clave){
+  const s = buscarSesion(clave);
+  if(!s){
+    avisar("No encontré esa sesión. Puede que ya esté borrada: recargá la página.", "malo");
+    return;
+  }
+  const seguro = await pedirConfirmacion({
+    titulo: "¿Borrar esta sesión?",
+    texto: "Sesión del " + s.fecha + " (" + s.dia + ").",
+    detalle: seriesDe(s) + " series. Las demás sesiones NO se tocan. Podés deshacerlo después.",
+    boton: "Sí, borrar",
+    peligro: true
+  });
+  if(!seguro) return;
+  const i = ESTADO.sesiones.indexOf(s);
+  if(i < 0){ avisar("La sesión ya no estaba en la lista.", "malo"); pintarTodo(); return; }
+  ULTIMA_BORRADA = {sesion: s, posicion: i};
+  ESTADO.sesiones.splice(i, 1);
+  const okg = guardar();
+  pintarTodo();
+  document.getElementById("msgGuardar").innerHTML = okg
+    ? '<div class="bien">Sesión del <b>'+esc(s.fecha)+'</b> borrada. Si fue un error, tocá <b>Deshacer</b> en la lista de abajo.</div>'
+    : '<div class="aviso">Se borró de la pantalla, pero <b>no se pudo guardar el cambio</b>. Usá «Descargar copia» antes de cerrar.</div>';
+}
+
+function deshacerBorrado(){
+  if(!ULTIMA_BORRADA) return;
+  const s = ULTIMA_BORRADA.sesion, pos = ULTIMA_BORRADA.posicion;
+  ESTADO.sesiones.splice(Math.min(pos, ESTADO.sesiones.length), 0, s);
+  ULTIMA_BORRADA = null;
+  guardar(); pintarTodo();
+  document.getElementById("msgGuardar").innerHTML =
+    '<div class="bien">Se restauró la sesión del <b>'+esc(s.fecha)+'</b>.</div>';
+}
+
+/* Trae una sesión guardada al formulario, para corregirla y volver a guardar */
+async function cargarSesionEnBorrador(clave){
+  const s = buscarSesion(clave);
+  if(!s){ avisar("No encontré esa sesión.", "malo"); return; }
+  const seguro = await pedirConfirmacion({
+    titulo: "¿Cargar esta sesión en el formulario?",
+    texto: "Sesión del " + s.fecha + " (" + s.dia + ").",
+    detalle: "Se reemplaza lo que tengas cargado sin guardar. Después podés volver a Guardar.",
+    boton: "Sí, cargar"
+  });
+  if(!seguro) return;
+  BORRADOR = nuevoBorrador(s.dia);
+  BORRADOR.fecha = s.fecha;
+  BORRADOR.sueno = s.sueno==null?"":s.sueno;
+  BORRADOR.estres = s.estres==null?"":s.estres;
+  BORRADOR.dl = s.dl==null?"":s.dl;
+  BORRADOR.dr = s.dr==null?"":s.dr;
+  BORRADOR.notas = s.notas||"";
+  (s.ejercicios||[]).forEach((e,i)=>{
+    const k = s.dia + "#" + i;
+    if(BORRADOR.series[k] !== undefined) BORRADOR.series[k] = (e.series||[]).slice();
+  });
+  pintarRegistrar();
+  document.getElementById("msgGuardar").innerHTML =
+    '<div class="bien">Cargada la sesión del <b>'+esc(s.fecha)+'</b>. Corregí lo que haga falta y volvé a <b>Guardar</b>.</div>';
+  window.scrollTo(0,0);
+}
+
+function pintarDatos(){
+  const ses = ESTADO.sesiones;
+  const totSeries = ses.reduce((a,s)=> a + (s.ejercicios||[]).reduce((b,e)=> b + ((e.series||[]).length),0), 0);
+  const fechas = ses.map(s=> s.fecha).filter(Boolean).sort();
+  const meds = (ESTADO.medidas || []).length;
+  let html = '<div class="card"><h3 style="margin-top:0">Resumen</h3><table>' +
+    '<tr><th>Sesiones guardadas</th><td class="num"><b>'+ses.length+'</b></td></tr>' +
+    '<tr><th>Series registradas</th><td class="num"><b>'+totSeries+'</b></td></tr>' +
+    '<tr><th>Mediciones corporales</th><td class="num"><b>'+meds+'</b></td></tr>' +
+    '<tr><th>Primera sesión</th><td class="num">'+(fechas[0]||"—")+'</td></tr>' +
+    '<tr><th>Última sesión</th><td class="num">'+(fechas[fechas.length-1]||"—")+'</td></tr>' +
+    '<tr><th>Última copia exportada</th><td class="num">'+(ESTADO.ultimaExportacion||"nunca")+'</td></tr>' +
+    '</table></div>';
+  document.getElementById("resumenDatos").innerHTML = html;
+}
+
+/* ============================================================
+   ESTADO DEL GUARDADO — lo primero que el usuario tiene que ver
+
+   En el TELÉFONO puede pasar que el navegador abra el archivo pero NO deje
+   guardar (los navegadores tratan distinto a los archivos locales). Si eso
+   pasa hay que avisarlo FUERTE: si no, el usuario carga toda la sesión, cierra,
+   y pierde todo sin enterarse.
+   ============================================================ */
+function probarGuardado(){
+  try{
+    const k = "__prueba_guardado__";
+    localStorage.setItem(k, "ok");
+    const v = localStorage.getItem(k);
+    localStorage.removeItem(k);
+    return v === "ok";
+  }catch(e){ return false; }
+}
+
+/* ¿Se abrió como archivo local o desde un enlace? En un navegador `location`
+   siempre existe, pero se protege igual: si algo lo bloqueara, no queremos que
+   la app se caiga justo al arrancar. */
+const esLocal = () => {
+  try {
+    return typeof location !== "undefined" &&
+           (location.protocol === "file:" || location.protocol === "");
+  } catch(e){ return false; }
+};
+
+/* Registra que se hizo una copia, para poder avisar si hay datos sin respaldar */
+function marcarExportado(){
+  ESTADO.ultimaExportacion = hoyISO();
+  guardar();
+  pintarBanda(true);
+  pintarDatos();
+}
+
+function pintarBanda(forzar){
+  const cont = document.getElementById("banda");
+  if(!cont) return;
+  if(cont.dataset.cerrada === "1" && !forzar) return;
+  const guarda = probarGuardado();
+  const local = esLocal();
+  const ses = ESTADO.sesiones.length;
+  const exp = ESTADO.ultimaExportacion;
+  const haySinExportar = ses > 0 && (!exp || ESTADO.sesiones.some(s => (s.fecha||"") > exp));
+
+  let clase, texto;
+  if(!guarda){
+    clase = "rojo";
+    texto = '<div><b>⚠ ESTE NAVEGADOR NO ESTÁ GUARDANDO NADA.</b><br>' +
+      'Podés usar la app, pero <b>al cerrarla se pierde todo</b>. Hacé esto:<br>' +
+      '1) Al terminar cada sesión, tocá <b>Mis datos → Descargar copia</b> y guardá el archivo.<br>' +
+      '2) Para que el guardado funcione de verdad, abrilo desde un <b>enlace</b> (ver la guía en Mis datos).</div>';
+  } else if(haySinExportar){
+    clase = "ambar";
+    texto = '<div><b>Tenés '+ses+' sesión(es) sin copia de seguridad.</b> ' +
+      'El guardado funciona, pero borrar los datos del navegador lo elimina todo. ' +
+      'Tocá <b>Mis datos → Descargar copia</b> cada tanto.</div>';
+  } else if(local){
+    clase = "verde";
+    texto = '<div><b>Guardado activo</b> en este navegador' +
+      (exp ? ' · última copia: '+esc(exp) : '') + '.</div>';
+  } else {
+    clase = "verde";
+    texto = '<div><b>Guardado activo.</b> Origen: enlace web' +
+      (exp ? ' · última copia: '+esc(exp) : '') + '.</div>';
+  }
+  cont.innerHTML = '<div class="banda '+clase+'">'+texto +
+    '<button class="x" data-cerrarbanda="1" title="Ocultar">✕</button></div>';
+  const b = cont.querySelector("[data-cerrarbanda]");
+  if(b) b.addEventListener("click", ()=>{ cont.dataset.cerrada = "1"; cont.innerHTML = ""; });
+}
+
+function descargar(nombre, texto, tipo){
+  const b = new Blob([texto], {type: tipo || "text/plain;charset=utf-8"});
+  const u = URL.createObjectURL(b);
+  const a = document.createElement("a");
+  a.href = u; a.download = nombre;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(u), 3000);
+}
+
+function aCSV(){
+  const filas = [["fecha","dia","sesion","musculo","ejercicio","serie","peso_lb","reps","rir","sueno_h","estres","dolor_lumbar","dolor_rodilla"]];
+  ESTADO.sesiones.slice().sort((a,b)=> (a.fecha||"").localeCompare(b.fecha||"")).forEach(s=>{
+    (s.ejercicios||[]).forEach(e=>{
+      (e.series||[]).forEach((x,i)=>{
+        filas.push([s.fecha, s.dia, s.nombre||"", e.musculo||"", e.nom||"", i+1,
+          x.peso, x.reps, (x.rir===null||x.rir==="")?"":x.rir,
+          s.sueno===null?"":s.sueno, s.estres===null?"":s.estres,
+          s.dl===null?"":s.dl, s.dr===null?"":s.dr]);
+      });
+    });
+  });
+  return filas.map(f=> f.map(c=>{
+    const t = String(c==null?"":c);
+    return /[",;\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t;
+  }).join(",")).join("\n");
+}
+
+function resumenTexto(){
+  const mapa = historialPorEjercicio();
+  const L = [];
+  L.push("RESUMEN DE ENTRENAMIENTO");
+  L.push("Sesiones: " + ESTADO.sesiones.length);
+  const sem = semanaDe(hoyISO());
+  const t = volumenSemana(sem);
+  L.push("Semana " + sem + ": " + Object.keys(t).map(k=> k+" "+t[k]).join(" | "));
+  L.push("");
+  L.push("PROGRESION (mejor serie, lb):");
+  Object.keys(mapa).forEach(k=>{
+    const e = mapa[k];
+    const p = e.puntos.filter(x=> x.mejor!==null);
+    if(!p.length) return;
+    L.push("  " + e.nom + ": " + p.map(x=> x.fecha.slice(5)+"="+x.mejor).join(" -> "));
+  });
+  L.push("");
+  L.push("SUEÑO Y DOLOR (últimas sesiones):");
+  ESTADO.sesiones.slice().sort((a,b)=> (b.fecha||"").localeCompare(a.fecha||"")).slice(0,10).forEach(s=>{
+    L.push("  " + s.fecha + " " + s.dia + ": sueño " + (s.sueno==null?"—":s.sueno) + " h, estrés " +
+      (s.estres==null?"—":s.estres) + ", lumbar " + (s.dl==null?"—":s.dl) + ", rodilla " + (s.dr==null?"—":s.dr));
+  });
+  return L.join("\n");
+}
+
+/* ============================================================
+   8.b COMIDAS — registro SIN BALANZA
+
+   POR QUÉ ASÍ: el usuario pidió registrar sus comidas pero avisó que
+   **no puede pesar la comida**: compra hecha o se la preparan, y no tiene
+   tiempo. Un registro que dependa de una balanza **no lo iba a usar**.
+
+   Entonces todo se mide en UNIDADES CASERAS (huevo, presa, taza, cucharón,
+   tortilla). Además hay:
+     - "platos comprados": estimaciones de una sola pulsación para comida
+       de la calle o hecha por otra persona;
+     - "comidas frecuentes": guardás una combinación y la aplicás con un toque.
+
+   ⚠ Los valores son ESTIMACIONES, no datos medidos, y así se avisa en la
+   interfaz. Sirven para no perder el registro y ver tendencias.
+
+   Los números del catálogo están armados para que SU día costeado
+   (entrenador.md §5.3) dé exactamente 134 g y ~1.810 kcal. Eso se verifica
+   en herramientas/verificar_app.js.
+   ============================================================ */
+const META_KCAL = 1800, META_PROT = 140;
+const META_COMIDA_PROT = 35;
+
+const MOMENTOS = [
+  {id:"desayuno", nom:"Desayuno"},
+  {id:"almuerzo", nom:"Almuerzo"},
+  {id:"cena",     nom:"Cena"},
+  {id:"merienda", nom:"Merienda / snack"}
+];
+
+/* Alimentos por unidad casera. p = proteína (g), k = kcal, POR UNIDAD. */
+const ALIMENTOS = [
+  {id:"huevo",     nom:"Huevo",                   uni:"1 unidad",            p:6,  k:70},
+  {id:"muslo",     nom:"Muslo de pollo sin piel", uni:"1 presa",             p:20, k:122},
+  {id:"pechuga",   nom:"Pechuga de pollo",        uni:"1 filete",            p:26, k:140},
+  {id:"molida",    nom:"Carne molida",            uni:"1 porción (100 g)",   p:20, k:250, nota:"el peor valor: L 1.39 por g de proteína"},
+  {id:"res",       nom:"Carne de res (posta)",    uni:"1 porción (100 g)",   p:26, k:200},
+  {id:"higado",    nom:"Hígado de res",           uni:"1 porción (100 g)",   p:26, k:175},
+  {id:"queso100",  nom:"Queso fresco",            uni:"1 porción (100 g)",   p:16, k:250},
+  {id:"quesoReb",  nom:"Queso fresco",            uni:"1 rebanada",          p:5,  k:75},
+  {id:"quesillo",  nom:"Quesillo / cuajada",      uni:"1 porción",           p:14, k:220},
+  {id:"arroz",     nom:"Arroz cocido",            uni:"1 taza",              p:5,  k:234, nota:"es carbohidrato, no proteína"},
+  {id:"frijoles",  nom:"Frijoles cocidos",        uni:"1 cucharón (½ taza)", p:10, k:149, nota:"altísimo FODMAP: si hay distensión, bajá la porción"},
+  {id:"frijolLic", nom:"Frijol licuado (sopa)",   uni:"1 taza",              p:8,  k:120},
+  {id:"tortilla",  nom:"Tortilla de maíz",        uni:"1 unidad",            p:2,  k:65},
+  {id:"pan",       nom:"Pan",                     uni:"1 rebanada",          p:3,  k:80},
+  {id:"avena",     nom:"Avena",                   uni:"½ taza cruda",        p:5,  k:150},
+  {id:"leche",     nom:"Leche",                   uni:"1 vaso (250 ml)",     p:8,  k:120},
+  {id:"platano",   nom:"Plátano",                 uni:"1 unidad",            p:1,  k:100},
+  {id:"vegetales", nom:"Vegetales",               uni:"1 porción",           p:2,  k:40},
+  {id:"aguacate",  nom:"Aguacate",                uni:"½ unidad",            p:1,  k:120},
+  {id:"aceite",    nom:"Aceite",                  uni:"1 cucharada",         p:0,  k:120},
+  {id:"crema",     nom:"Crema",                   uni:"1 cucharada",         p:0,  k:50}
+];
+
+/* Comida comprada o hecha por otra persona: estimaciones GRUESAS de un toque.
+   ⚠ No son datos medidos: la interfaz lo avisa. */
+const PLATOS = [
+  {id:"tipico",      nom:"Almuerzo típico (carne + arroz + frijoles + 2 tortillas + queso)", p:35, k:700},
+  {id:"desayTip",    nom:"Desayuno típico (huevos + frijoles + queso + tortillas)",          p:25, k:500},
+  {id:"baleadaS",    nom:"Baleada sencilla",                                                p:12, k:350},
+  {id:"baleadaT",    nom:"Baleada con todo",                                                p:20, k:550},
+  {id:"polloFrito",  nom:"Pollo frito con tajadas",                                         p:35, k:900},
+  {id:"polloAsado",  nom:"Pollo asado (¼)",                                                 p:30, k:500},
+  {id:"sopaRes",     nom:"Sopa de res",                                                     p:25, k:400},
+  {id:"tajadas",     nom:"Tajadas con chicharrón",                                          p:15, k:600},
+  {id:"pastelitos",  nom:"Pastelitos (2)",                                                  p:8,  k:300},
+  {id:"pupusas",     nom:"Pupusas (2)",                                                     p:12, k:400},
+  {id:"enchiladas",  nom:"Enchiladas",                                                      p:15, k:500},
+  {id:"hamburguesa", nom:"Hamburguesa con papas",                                           p:25, k:850}
+];
+
+/* Busca un alimento o plato por su clave y devuelve los macros POR UNIDAD */
+function buscarComida(clave){
+  if(!clave) return null;
+  if(clave.indexOf("A:") === 0){
+    const a = ALIMENTOS.find(x => x.id === clave.slice(2));
+    if(a) return {nom:a.nom, uni:a.uni, p:a.p, k:a.k, tipo:"alimento"};
+  }
+  if(clave.indexOf("P:") === 0){
+    const b = PLATOS.find(x => x.id === clave.slice(2));
+    if(b) return {nom:b.nom, uni:"1 plato", p:b.p, k:b.k, tipo:"plato"};
+  }
+  if(clave.indexOf("M:") === 0){
+    const m = (ESTADO.misAlimentos || []).find(x => x.id === clave.slice(2));
+    if(m) return {nom:m.nom, uni:m.uni, p:m.p, k:m.k, tipo:"mio"};
+  }
+  return null;
+}
+
+const comidasDe = fecha => (ESTADO.comidas || []).filter(c => c.fecha === fecha);
+function itemsDe(fecha, momento){
+  const c = comidasDe(fecha).find(x => x.momento === momento);
+  return (c && c.items) ? c.items : [];
+}
+
+/* Suma proteína y kcal de una lista de items */
+function totalItems(items){
+  let p = 0, k = 0;
+  (items || []).forEach(it => {
+    const c = n(it.cant);
+    const cant = (c === null || c === 0) ? 1 : c;
+    p += (n(it.p) || 0) * cant;
+    k += (n(it.k) || 0) * cant;
+  });
+  return {p: Math.round(p), k: Math.round(k)};
+}
+
+function totalDia(fecha){
+  let p = 0, k = 0; const porMomento = {};
+  MOMENTOS.forEach(m => {
+    const t = totalItems(itemsDe(fecha, m.id));
+    porMomento[m.id] = t;
+    p += t.p; k += t.k;
+  });
+  return {p:p, k:k, porMomento:porMomento};
+}
+
+function agregarComida(fecha, momento, clave, cant){
+  const base = buscarComida(clave);
+  if(!base){ avisar("Elegí un alimento o un plato de la lista.", "malo"); return false; }
+  const c = n(cant);
+  const cantidad = (c === null || c <= 0) ? 1 : c;
+  ESTADO.comidas = ESTADO.comidas || [];
+  let reg = ESTADO.comidas.find(x => x.fecha === fecha && x.momento === momento);
+  if(!reg){ reg = {fecha:fecha, momento:momento, items:[]}; ESTADO.comidas.push(reg); }
+  reg.items.push({nom:base.nom, uni:base.uni, p:base.p, k:base.k, cant:cantidad, tipo:base.tipo});
+  guardar();
+  return true;
+}
+
+function borrarItemComida(fecha, momento, indice){
+  const reg = (ESTADO.comidas || []).find(x => x.fecha === fecha && x.momento === momento);
+  if(!reg) return;
+  reg.items.splice(indice, 1);
+  if(!reg.items.length) ESTADO.comidas = ESTADO.comidas.filter(x => x !== reg);
+  guardar();
+}
+
+function guardarPlantilla(fecha, momento, nombre){
+  const items = itemsDe(fecha, momento);
+  if(!items.length){ avisar("Esa comida está vacía: agregá algo antes de guardarla.", "malo"); return; }
+  const nom = String(nombre || "").trim() ||
+    ("Comida frecuente " + (((ESTADO.plantillas || []).length) + 1));
+  ESTADO.plantillas = ESTADO.plantillas || [];
+  ESTADO.plantillas.push({nom:nom, momento:momento,
+    items:items.map(x => ({nom:x.nom, uni:x.uni, p:x.p, k:x.k, cant:x.cant, tipo:x.tipo}))});
+  guardar();
+  avisar('Guardada como comida frecuente: "' + nom + '".', "bueno");
+}
+
+function aplicarPlantilla(fecha, momento, indice){
+  const pl = (ESTADO.plantillas || [])[indice];
+  if(!pl) return;
+  ESTADO.comidas = ESTADO.comidas || [];
+  let reg = ESTADO.comidas.find(x => x.fecha === fecha && x.momento === momento);
+  if(!reg){ reg = {fecha:fecha, momento:momento, items:[]}; ESTADO.comidas.push(reg); }
+  pl.items.forEach(x => reg.items.push({nom:x.nom, uni:x.uni, p:x.p, k:x.k, cant:x.cant, tipo:x.tipo}));
+  guardar();
+  pintarComidas();
+}
+
+let fechaComidas = null;
+
+function pintarComidas(){
+  const cont = document.getElementById("comidasContenido");
+  if(!cont) return;
+  if(!fechaComidas) fechaComidas = hoyISO();
+  const inp = document.getElementById("cFecha");
+  if(inp) inp.value = fechaComidas;
+
+  const tot = totalDia(fechaComidas);
+  const pctP = Math.min(100, Math.round(tot.p / META_PROT * 100));
+  const pctK = Math.min(100, Math.round(tot.k / META_KCAL * 100));
+  const res = document.getElementById("cResumen");
+  if(res){
+    res.innerHTML =
+      '<div class="tabla-scroll"><table>' +
+      '<tr><th>Del día</th><th class="num">Llevás</th><th class="num">Meta</th><th style="width:130px">Avance</th></tr>' +
+      '<tr><td><b>Proteína</b></td><td class="num"><b>'+tot.p+' g</b></td><td class="num">'+META_PROT+' g</td>' +
+        '<td><div class="barra'+(tot.p>=META_PROT?" ok":"")+'"><i style="width:'+pctP+'%"></i></div></td></tr>' +
+      '<tr><td>Calorías</td><td class="num">'+tot.k.toLocaleString("es-HN")+'</td><td class="num">'+META_KCAL.toLocaleString("es-HN")+'</td>' +
+        '<td><div class="barra'+(tot.k>META_KCAL*1.1?" alto":"")+'"><i style="width:'+pctK+'%"></i></div></td></tr>' +
+      '</table></div>' +
+      '<div class="mini">La proteína es la que manda. Las calorías se pasan fácil con arroz, tortilla, queso y aceite: ' +
+      '<b>si te pasás, recortá ahí, no en la proteína</b>.</div>';
+  }
+
+  let html = "";
+  MOMENTOS.forEach(m => {
+    const items = itemsDe(fechaComidas, m.id);
+    const t = totalItems(items);
+    const okProt = t.p >= META_COMIDA_PROT * 0.85;
+    const pls = (ESTADO.plantillas || []).map((pl,i) => ({pl:pl, i:i})).filter(x => x.pl.momento === m.id);
+
+    html += '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap">' +
+      '<h3 style="margin:0">'+esc(m.nom)+'</h3>' +
+      '<span class="mini">'+t.p+' g de proteína · '+t.k+' kcal · meta ~'+META_COMIDA_PROT+' g ' +
+      (okProt ? '<b style="color:var(--ok)">✔</b>' : '<b style="color:var(--amarillo)">falta proteína</b>') + '</span></div>';
+
+    if(items.length){
+      html += '<div style="margin-top:8px">';
+      items.forEach((x,j) => {
+        const c = n(x.cant); const cant = (c === null || c === 0) ? 1 : c;
+        html += '<div class="serie"><b>'+cant+'×</b><span>'+esc(x.nom)+'</span><span class="sp"></span>' +
+          '<span class="mini">'+esc(x.uni)+'</span><span class="sp"></span>' +
+          '<span>'+(Math.round(x.p*cant))+' g · '+(Math.round(x.k*cant))+' kcal</span>' +
+          '<button class="mini" data-delcom="'+esc(fechaComidas)+'|'+esc(m.id)+'|'+j+'">✕</button></div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="mini" style="margin-top:6px">Sin registrar todavía.</div>';
+    }
+
+    html += '<div class="fila" style="margin-top:10px">' +
+      '<div style="flex:2 1 200px"><label>Qué comiste</label>' +
+      '<select data-sel="'+m.id+'">' +
+        '<option value="">— elegir —</option>' +
+        '<optgroup label="Alimentos (por unidad casera)">' +
+          ALIMENTOS.map(a => '<option value="A:'+a.id+'">'+esc(a.nom)+' — '+esc(a.uni)+' ('+a.p+' g)</option>').join("") +
+        '</optgroup>' +
+        '<optgroup label="🍽 Plato comprado o hecho por otra persona (estimación)">' +
+          PLATOS.map(b => '<option value="P:'+b.id+'">'+esc(b.nom)+' ('+b.p+' g)</option>').join("") +
+        '</optgroup>' +
+        (misAlimentos().length
+          ? '<optgroup label="⭐ Mis alimentos y platos">' +
+              misAlimentos().map(x => '<option value="M:'+esc(x.id)+'">'+esc(x.nom)+' — '+esc(x.uni)+' ('+x.p+' g)</option>').join("") +
+            '</optgroup>'
+          : '') +
+        '<optgroup label="✏️ ¿No está en la lista?">' +
+          '<option value="__NUEVO__">➕ Agregar algo nuevo (alimento o comida)</option>' +
+        '</optgroup>' +
+      '</select></div>' +
+      '<div style="flex:0 1 90px"><label>Cantidad</label><input type="number" inputmode="decimal" step="0.5" min="0.5" value="1" data-cant="'+m.id+'"></div>' +
+      '<div style="flex:0 0 auto"><label>&nbsp;</label><button class="acc" data-addcom="'+m.id+'">+ Agregar</button></div>' +
+    '</div>';
+
+    if(pls.length){
+      html += '<div class="mini" style="margin-top:8px">Comidas frecuentes guardadas:</div><div style="margin-top:4px">';
+      pls.forEach(x => {
+        html += '<button class="mini" data-pl="'+x.i+'|'+m.id+'" style="margin:2px 4px 2px 0">'+esc(x.pl.nom)+'</button>';
+      });
+      html += '</div>';
+    }
+
+    if(items.length){
+      html += '<div class="fila" style="margin-top:8px">' +
+        '<div style="flex:2 1 160px"><label>Guardar esta comida como frecuente</label>' +
+        '<input type="text" data-nompl="'+m.id+'" placeholder="Ej: desayuno de siempre"></div>' +
+        '<div style="flex:0 0 auto"><label>&nbsp;</label><button class="acc sec" data-guardarpl="'+m.id+'">Guardar</button></div>' +
+      '</div>';
+    }
+    html += '</div>';
+  });
+  cont.innerHTML = html;
+
+  pintarMisAlimentos();
+
+  const sem = document.getElementById("cSemana");
+  if(sem){
+    let s = '<div class="tabla-scroll"><table><tr><th>Día</th><th class="num">Proteína</th><th class="num">Calorías</th><th></th></tr>';
+    let conDatos = 0, cumplidos = 0;
+    for(let i = 0; i < 14; i++){
+      const d = new Date(fechaComidas + "T12:00:00");
+      d.setDate(d.getDate() - i);
+      const f = d.toISOString().slice(0,10);
+      const t = totalDia(f);
+      if(t.p === 0 && t.k === 0) continue;
+      conDatos++;
+      const cumple = t.p >= META_PROT * 0.9;
+      if(cumple) cumplidos++;
+      s += '<tr><td>'+esc(f)+(f === hoyISO() ? ' <span class="chip g">hoy</span>' : '')+'</td>' +
+        '<td class="num">'+t.p+' g</td><td class="num">'+t.k.toLocaleString("es-HN")+'</td>' +
+        '<td>'+(cumple ? '<b style="color:var(--ok)">✔</b>' : '<span class="mini">faltó</span>')+'</td></tr>';
+    }
+    s += '</table></div>';
+    if(!conDatos) s = '<div class="mini">Todavía no registraste ninguna comida. Empezá por la próxima y no te preocupes por la precisión.</div>';
+    else s += '<div class="mini">Días con registro: <b>'+conDatos+'</b> · días que llegaste a la proteína: <b>'+cumplidos+'</b>. Lo que importa es la constancia, no la exactitud.</div>';
+    sem.innerHTML = s;
+  }
+}
+
+/* ---- MIS ALIMENTOS: los que agrega el usuario ----
+   POR QUÉ: come variado, así que un catálogo fijo se le queda corto.
+   El problema real: **no sabe los macros** de lo que le preparan. Entonces
+   elige TIPO de comida + TAMAÑO y la app se los estima. Los tamaños están
+   expresados con la mano (½ palma / 1 palma / 1½ palma), coherente con todo
+   el resto del registro sin balanza. */
+const ESTIMADOR = [
+  {id:"res",      nom:"Carne de res",             p:26, k:200, uni:"1 porción"},
+  {id:"pollo",    nom:"Pollo",                    p:25, k:140, uni:"1 porción"},
+  {id:"cerdo",    nom:"Cerdo",                    p:22, k:200, uni:"1 porción"},
+  {id:"pescado",  nom:"Pescado",                  p:24, k:150, uni:"1 porción"},
+  {id:"huevo",    nom:"Huevo",                    p:12, k:140, uni:"2 unidades"},
+  {id:"lacteo",   nom:"Queso o leche",            p:12, k:150, uni:"1 porción"},
+  {id:"legumbre", nom:"Frijol o legumbre",        p:10, k:150, uni:"1 cucharón"},
+  {id:"cereal",   nom:"Arroz o pasta",            p:5,  k:234, uni:"1 taza"},
+  {id:"tortilla", nom:"Tortilla o pan",           p:2,  k:65,  uni:"1 unidad"},
+  {id:"tuberculo",nom:"Papa, yuca o plátano",     p:2,  k:200, uni:"1 porción"},
+  {id:"verdura",  nom:"Verdura",                  p:2,  k:40,  uni:"1 porción"},
+  {id:"fruta",    nom:"Fruta",                    p:1,  k:100, uni:"1 unidad"},
+  {id:"grasa",    nom:"Aceite, crema o aguacate", p:0,  k:120, uni:"1 cucharada"},
+  {id:"guiso",    nom:"Guiso o comida preparada", p:20, k:350, uni:"1 plato"},
+  {id:"sopa",     nom:"Sopa o caldo",             p:10, k:150, uni:"1 plato"}
+];
+const TAMANOS = [
+  {id:"p", nom:"Pequeña (½ palma / ½ puño)",  f:0.6},
+  {id:"n", nom:"Normal (1 palma / 1 puño)",   f:1},
+  {id:"g", nom:"Grande (1½ palma / 1½ puño)", f:1.6}
+];
+
+function estimar(tipoId, tamId){
+  const t = ESTIMADOR.find(x => x.id === tipoId) || ESTIMADOR[0];
+  const s = TAMANOS.find(x => x.id === tamId) || TAMANOS[1];
+  return {p: Math.round(t.p * s.f), k: Math.round(t.k * s.f / 5) * 5, uni: t.uni, nom: t.nom};
+}
+
+const misAlimentos = () => (ESTADO.misAlimentos || []);
+
+/* ---- CREAR ALGO NUEVO DESDE EL MISMO SELECTOR ----
+   PEDIDO DEL USUARIO: "que tenga la opción donde yo pueda ingresar también las
+   comidas que no aparezcan para seleccionar".
+   El hueco real: se podía crear un alimento en su sección, pero si estabas
+   registrando una comida y no aparecía en la lista, no había salida.
+   Esto abre un formulario ahí mismo: nombre + unidad, y los macros salen del
+   estimador por tipo y tamaño (o los escribe a mano). Vale tanto para un
+   alimento suelto como para una comida entera.
+   Las consultas al DOM son DENTRO del modal (no por id global): así no chocan
+   con los campos de la sección "Mis alimentos" ni entre aperturas. */
+function pedirNuevoAlimento(nombreInicial){
+  return new Promise(function(resolver){
+    var caja = document.createElement("div");
+    caja.className = "modal";
+    caja.innerHTML =
+      '<div class="modal-caja">' +
+        '<h3>Agregar algo que no está en la lista</h3>' +
+        '<p class="mini">Puede ser un alimento suelto o una <b>comida entera</b>. ' +
+        'Si no sabés los macros, elegí <b>tipo</b> y <b>tamaño</b> y la app los calcula.</p>' +
+        '<label>Nombre</label>' +
+        '<input type="text" data-na="nom" value="' + esc(nombreInicial || "") + '" placeholder="Ej: sopa de mi mamá">' +
+        '<label>Unidad (cómo lo medís)</label>' +
+        '<input type="text" data-na="uni" list="uniSug" placeholder="1 plato">' +
+        '<div class="fila">' +
+          '<div><label>Tipo de comida</label><select data-na="tipo"></select></div>' +
+          '<div><label>Tamaño</label><select data-na="tam"></select></div>' +
+        '</div>' +
+        '<div class="fila">' +
+          '<div><label>Proteína (g)</label><input type="number" inputmode="decimal" step="0.5" min="0" data-na="prot"></div>' +
+          '<div><label>Calorías</label><input type="number" inputmode="numeric" step="5" min="0" data-na="kcal"></div>' +
+        '</div>' +
+        '<div class="mini" style="margin-top:6px">Podés corregir los números a mano si querés. Son estimaciones.</div>' +
+        '<div class="modal-botones">' +
+          '<button class="acc sec" data-no="1">Cancelar</button>' +
+          '<button class="acc" data-si="1">Guardar y agregar</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(caja);
+
+    var q = function(sel){ return caja.querySelector('[data-na="' + sel + '"]'); };
+    q("tipo").innerHTML = ESTIMADOR.map(function(t){
+      return '<option value="' + t.id + '">' + esc(t.nom) + '</option>';
+    }).join("");
+    q("tam").innerHTML = TAMANOS.map(function(s){
+      return '<option value="' + s.id + '"' + (s.id === "n" ? " selected" : "") + '>' + esc(s.nom) + '</option>';
+    }).join("");
+
+    function rellenar(){
+      var e = estimar(q("tipo").value, q("tam").value);
+      q("prot").value = e.p;
+      q("kcal").value = e.k;
+      if(!q("uni").value.trim()) q("uni").value = e.uni;
+    }
+    q("tipo").addEventListener("change", rellenar);
+    q("tam").addEventListener("change", rellenar);
+    rellenar();
+
+    var cerrado = false;
+    function cerrar(v){
+      if(cerrado) return;
+      cerrado = true;
+      if(caja.parentNode) caja.parentNode.removeChild(caja);
+      resolver(v);
+    }
+    caja.addEventListener("click", function(ev){
+      var d = (ev.target && ev.target.dataset) ? ev.target.dataset : {};
+      if(d.si !== undefined){
+        var nombre = String(q("nom").value || "").trim();
+        if(!nombre){ avisar("Poné un nombre para poder reconocerlo después.", "malo"); return; }
+        cerrar({
+          nom: nombre,
+          uni: String(q("uni").value || "").trim() || "1 porción",
+          p: n(q("prot").value) === null ? 0 : n(q("prot").value),
+          k: n(q("kcal").value) === null ? 0 : n(q("kcal").value)
+        });
+      }
+      else if(d.no !== undefined) cerrar(null);
+      else if(ev.target === caja) cerrar(null);
+    });
+  });
+}
+
+/* Crea el alimento, lo guarda y lo devuelve para registrarlo en la comida */
+function crearYGuardarAlimento(datos){
+  if(!datos) return null;
+  const okg = guardarMiAlimento(datos.nom, datos.uni, datos.p, datos.k);
+  if(!okg) return null;
+  const mis = misAlimentos();
+  return mis[mis.length - 1] || null;
+}
+
+function guardarMiAlimento(nom, uni, prot, kcal){
+  const nombre = String(nom || "").trim();
+  if(!nombre){ avisar("Poné un nombre para el alimento.", "malo"); return false; }
+  const p = n(prot), k = n(kcal);
+  if(p === null && k === null){ avisar("Poné al menos la proteína, o elegí tipo y tamaño.", "malo"); return false; }
+  ESTADO.misAlimentos = ESTADO.misAlimentos || [];
+  const id = nombre.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 28) + "-" + Date.now().toString(36);
+  ESTADO.misAlimentos.push({
+    id: id, nom: nombre,
+    uni: String(uni || "").trim() || "1 porción",
+    p: (p === null ? 0 : p),
+    k: (k === null ? 0 : k)
+  });
+  guardar();
+  return true;
+}
+
+function borrarMiAlimento(id){
+  ESTADO.misAlimentos = misAlimentos().filter(x => x.id !== id);
+  guardar();
+}
+
+function pintarMisAlimentos(){
+  const lista = document.getElementById("maLista");
+  const selT = document.getElementById("maTipo");
+  const selS = document.getElementById("maTam");
+  if(selT && !selT.options.length){
+    selT.innerHTML = ESTIMADOR.map(t => '<option value="'+t.id+'">'+esc(t.nom)+'</option>').join("");
+  }
+  if(selS && !selS.options.length){
+    selS.innerHTML = TAMANOS.map(s => '<option value="'+s.id+'"'+(s.id==="n"?" selected":"")+'>'+esc(s.nom)+'</option>').join("");
+  }
+  if(!lista) return;
+  const mis = misAlimentos();
+  if(!mis.length){
+    lista.innerHTML = '<div class="mini">Todavía no agregaste ninguno. Los que agregues van a aparecer en la lista de cada comida, abajo de todo.</div>';
+    return;
+  }
+  let h = '<div class="mini"><b>Tus alimentos ('+mis.length+')</b> — ya están disponibles al registrar cada comida.</div>' +
+    '<div class="tabla-scroll" style="margin-top:6px"><table>' +
+    '<tr><th>Alimento</th><th>Unidad</th><th class="num">Prot.</th><th class="num">kcal</th><th></th></tr>';
+  mis.forEach(x => {
+    h += '<tr><td>'+esc(x.nom)+'</td><td class="mini">'+esc(x.uni)+'</td>' +
+      '<td class="num">'+x.p+' g</td><td class="num">'+x.k+'</td>' +
+      '<td><button class="mini" data-delma="'+esc(x.id)+'">✕</button></td></tr>';
+  });
+  h += '</table></div>';
+  lista.innerHTML = h;
+}
+
+/* ============================================================
+   9. FIGURAS DE LOS EJERCICIOS (SVG dibujado acá adentro)
+
+   POR QUÉ DIBUJOS Y NO FOTOS:
+     - No se pueden descargar imágenes: el acceso TLS está bloqueado.
+     - Usar fotos de internet sería material de terceros.
+   Así que las figuras son DIBUJOS DE LÍNEAS generados por código, con un
+   muñeco articulado: cada pose son ángulos de cadera, rodilla, hombro y codo.
+   Funcionan sin internet y no dependen de ningún archivo externo.
+
+   SON ESQUEMAS, NO FOTOS: sirven para entender la POSICIÓN y el MOVIMIENTO.
+   ============================================================ */
+const FIG = {torso:32, brazo:20, antebrazo:18, muslo:27, pantorrilla:25, pie:10, cab:7};
+
+/* Ángulo en grados medido desde ABAJO: 0 = hacia abajo, 90 = hacia adelante
+   (derecha de la pantalla), 180 = hacia arriba, -90 = hacia atrás. */
+function figPt(o, largo, ang){
+  const r = ang * Math.PI / 180;
+  return [o[0] + largo * Math.sin(r), o[1] + largo * Math.cos(r)];
+}
+const fz = v => (v === undefined || v === null || isNaN(v) ? 0 : v);
+const fy = (v, d) => (v === undefined || v === null || isNaN(v) ? d : v);
+const fnum = v => Number(v).toFixed(1);
+
+/* Un segmento de dos huesos: origen -> articulación -> extremo */
+function figSeg(o, a1, l1, a2, l2, cls){
+  const p1 = figPt(o, l1, a1), p2 = figPt(p1, l2, a2);
+  return {
+    p1: p1, p2: p2,
+    svg: '<line class="' + cls + '" x1="' + fnum(o[0]) + '" y1="' + fnum(o[1]) +
+         '" x2="' + fnum(p1[0]) + '" y2="' + fnum(p1[1]) + '"/>' +
+         '<line class="' + cls + '" x1="' + fnum(p1[0]) + '" y1="' + fnum(p1[1]) +
+         '" x2="' + fnum(p2[0]) + '" y2="' + fnum(p2[1]) + '"/>'
+  };
+}
+
+/* Dibuja el muñeco. Las extremidades B (lejanas) van primero, en gris. */
+function figCuerpo(p){
+  const cad = [fz(p.cx), fz(p.cy)];
+  const tor = 180 + fz(p.t);
+  const hom = figPt(cad, FIG.torso, tor);
+  const cabC = figPt(hom, FIG.cab + 3, tor + fz(p.cu));
+
+  const brazoLejos = figSeg(hom, fy(p.bB, fz(p.bA)), FIG.brazo, fy(p.cB, fz(p.cA)), FIG.antebrazo, "f-far");
+  const piernaLejos = figSeg(cad, fy(p.mB, fz(p.mA)), FIG.muslo, fy(p.rB, fz(p.rA)), FIG.pantorrilla, "f-far");
+
+  const s = brazoLejos.svg + piernaLejos.svg +
+    '<line class="f-torso" x1="' + fnum(cad[0]) + '" y1="' + fnum(cad[1]) +
+      '" x2="' + fnum(hom[0]) + '" y2="' + fnum(hom[1]) + '"/>' +
+    '<circle class="f-cab" cx="' + fnum(cabC[0]) + '" cy="' + fnum(cabC[1]) + '" r="' + FIG.cab + '"/>';
+
+  const brazoCerca = figSeg(hom, fz(p.bA), FIG.brazo, fz(p.cA), FIG.antebrazo, "f-near");
+  const piernaCerca = figSeg(cad, fz(p.mA), FIG.muslo, fz(p.rA), FIG.pantorrilla, "f-near");
+  const pie = figPt(piernaCerca.p2, FIG.pie, 90 + fz(p.pie));
+
+  return s + brazoCerca.svg + piernaCerca.svg +
+    '<line class="f-near" x1="' + fnum(piernaCerca.p2[0]) + '" y1="' + fnum(piernaCerca.p2[1]) +
+      '" x2="' + fnum(pie[0]) + '" y2="' + fnum(pie[1]) + '"/>';
+}
+
+/* Pose SIN la posición horizontal: el dibujante la coloca en su mitad.
+   (cy, torso, brazoA, codoA, brazoB, codoB, musloA, rodillaA, musloB, rodillaB, pie, cuello) */
+function S(cy, t, bA, cA, bB, cB, mA, rA, mB, rB, pie, cu){
+  return {cy:cy, t:t, bA:bA, cA:cA, bB:bB, cB:cB, mA:mA, rA:rA, mB:mB, rB:rB, pie:pie, cu:cu};
+}
+
+/* Flecha de movimiento, en coordenadas del lienzo */
+function figFlecha(x1, y1, x2, y2){
+  const ang = Math.atan2(y2 - y1, x2 - x1), d = 6;
+  const a = [x2 - d * Math.cos(ang - 0.45), y2 - d * Math.sin(ang - 0.45)];
+  const b = [x2 - d * Math.cos(ang + 0.45), y2 - d * Math.sin(ang + 0.45)];
+  return '<line class="f-fl" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '"/>' +
+    '<polygon class="f-flp" points="' + x2 + ',' + y2 + ' ' + fnum(a[0]) + ',' + fnum(a[1]) + ' ' +
+    fnum(b[0]) + ',' + fnum(b[1]) + '"/>';
+}
+
+/* El equipo se dibuja DOS VECES, una por cada figura, así que cada elemento
+   recibe el centro horizontal de su figura. Así las dos mitades son completas
+   y no queda equipo huérfano en el medio. */
+const EQ = {
+  piso:      c => '<line class="f-eq" x1="' + (c - 56) + '" y1="128" x2="' + (c + 56) + '" y2="128"/>',
+  banco:     c => '<rect class="f-eq-r" x="' + (c - 44) + '" y="103" width="88" height="8" rx="3"/>' +
+                  '<rect class="f-eq" x="' + (c - 36) + '" y="111" width="5" height="17"/>' +
+                  '<rect class="f-eq" x="' + (c + 31) + '" y="111" width="5" height="17"/>',
+  bancoInc:  c => '<rect class="f-eq-r" x="' + (c - 50) + '" y="84" width="9" height="44" rx="3" transform="rotate(-32 ' + (c - 46) + ' 128)"/>' +
+                  '<rect class="f-eq-r" x="' + (c + 6) + '" y="103" width="44" height="8" rx="3"/>' +
+                  '<rect class="f-eq" x="' + (c + 12) + '" y="111" width="5" height="17"/>',
+  respaldo:  c => '<rect class="f-eq-r" x="' + (c - 50) + '" y="46" width="8" height="60" rx="3"/>' +
+                  '<rect class="f-eq-r" x="' + (c - 46) + '" y="102" width="52" height="8" rx="3"/>',
+  smith:     c => '<line class="f-eq" x1="' + (c - 46) + '" y1="16" x2="' + (c - 46) + '" y2="128"/>' +
+                  '<line class="f-eq" x1="' + (c + 46) + '" y1="16" x2="' + (c + 46) + '" y2="128"/>' +
+                  '<line class="f-eq" x1="' + (c - 50) + '" y1="22" x2="' + (c + 50) + '" y2="22"/>',
+  poleaAlta: c => '<line class="f-eq" x1="' + (c - 50) + '" y1="18" x2="' + (c + 50) + '" y2="18"/>' +
+                  '<rect class="f-eq-r" x="' + (c - 50) + '" y="10" width="15" height="13" rx="3"/>',
+  poleaBaja: c => '<rect class="f-eq-r" x="' + (c - 52) + '" y="114" width="17" height="14" rx="3"/>' +
+                  '<line class="f-eq" x1="' + (c - 35) + '" y1="121" x2="' + (c - 14) + '" y2="121"/>',
+  plataforma:c => '<line class="f-eq" x1="' + (c + 14) + '" y1="126" x2="' + (c + 50) + '" y2="92"/>' +
+                  '<line class="f-eq" x1="' + (c + 22) + '" y1="128" x2="' + (c + 54) + '" y2="100"/>',
+  maquinaExt:c => '<rect class="f-eq-r" x="' + (c - 50) + '" y="52" width="9" height="58" rx="3"/>' +
+                  '<rect class="f-eq-r" x="' + (c - 44) + '" y="106" width="54" height="8" rx="3"/>',
+  escalon:   c => '<rect class="f-eq-r" x="' + (c + 6) + '" y="118" width="34" height="12" rx="2"/>',
+  tobillera: c => '<circle class="f-eq" cx="' + (c + 34) + '" cy="122" r="5"/>',
+  /* Equipo ajustado a la POSICIÓN REAL del cuerpo: en los ejercicios reclinados
+     el respaldo tiene que caer justo DETRÁS de la espalda, no flotando lejos.
+     (En la primera versión los muñecos quedaban colgando delante del respaldo
+     y parecían estar cayéndose.) */
+  padHack:   c => '<line class="f-eq" x1="' + (c - 16) + '" y1="42" x2="' + (c - 6) + '" y2="86" stroke-width="9" opacity=".3"/>' +
+                  '<line class="f-eq" x1="' + (c - 16) + '" y1="42" x2="' + (c - 6) + '" y2="86"/>',
+  plateHack: c => '<line class="f-eq" x1="' + (c + 2) + '" y1="127" x2="' + (c + 32) + '" y2="104"/>',
+  padPrensa: c => '<line class="f-eq" x1="' + (c - 30) + '" y1="70" x2="' + (c - 10) + '" y2="106" stroke-width="9" opacity=".3"/>' +
+                  '<line class="f-eq" x1="' + (c - 30) + '" y1="70" x2="' + (c - 10) + '" y2="106"/>',
+  seatPrensa:c => '<rect class="f-eq-r" x="' + (c - 16) + '" y="104" width="40" height="8" rx="3"/>' +
+                  '<rect class="f-eq" x="' + (c - 4) + '" y="112" width="5" height="16"/>',
+  platePrensa:c => '<line class="f-eq" x1="' + (c + 30) + '" y1="127" x2="' + (c + 56) + '" y2="96" stroke-width="5"/>',
+  mancuerna: c => '<rect class="f-eq-r" x="' + (c + 22) + '" y="112" width="24" height="6" rx="3"/>' +
+                  '<rect class="f-eq-r" x="' + (c + 18) + '" y="109" width="6" height="12" rx="2"/>' +
+                  '<rect class="f-eq-r" x="' + (c + 44) + '" y="109" width="6" height="12" rx="2"/>'
+};
+
+/* Cada ejercicio: la posición de INICIO y la de FIN, más el equipo.
+   Las dos figuras se colocan solas en su mitad del lienzo. */
+const DIBUJOS = {
+ "hack-squat": {eq:["padHack","plateHack"], flecha:[150,60,150,100],
+   ini:S(76, 14, 25,55, 25,55, 40,-10, 40,-10, 0),
+   fin:S(98, 14, 25,55, 25,55, 78,-42, 78,-42, -16)},
+
+ "prensa": {eq:["padPrensa","seatPrensa","platePrensa"], flecha:[150,112,150,84],
+   ini:S(104, 36, 30,60, 30,60, 100,10, 100,10, 0),
+   fin:S(104, 36, 30,60, 30,60, 60,75, 60,75, 0)},
+
+ "extension-rodillas": {eq:["maquinaExt"], flecha:[128,104,128,72],
+   ini:S(96, -6, 18,60, 18,60, 80,-70, 80,-70, 0),
+   fin:S(96, -6, 18,60, 18,60, 80,15, 80,15, 0)},
+
+ "curl-femoral": {eq:["banco","mancuerna"], flecha:[150,92,150,62],
+   ini:S(96, 90, 40,60, 40,60, 88,88, 88,88, 0),
+   fin:S(96, 90, 40,60, 40,60, 88,-58, 88,-58, 0)},
+
+ "gemelos-pie": {eq:["piso","escalon"], flecha:[54,96,54,66],
+   ini:S(80, 0, 12,16, 12,16, 4,-4, 4,-4, 26),
+   fin:S(64, 0, 12,16, 12,16, 4,-4, 4,-4, -18)},
+
+ "gemelo-sentado": {eq:["banco","escalon"], flecha:[54,104,54,78],
+   ini:S(94, 4, 30,64, 30,64, 80,40, 80,40, 30),
+   fin:S(94, 4, 30,64, 30,64, 80,40, 80,40, -18)},
+
+ "mcgill": {eq:["piso"], flecha:[40,80,66,64],
+   ini:S(106, 88, 100,124, 100,124, 80,-84, 80,-84, 0),
+   fin:S(106, 62, 100,124, 100,124, 80,-84, 80,-84, 0)},
+
+ "press-banca": {eq:["banco","smith"], flecha:[62,72,62,44],
+   ini:S(100, 90, 205,300, 205,300, 66,10, 66,10, 0),
+   fin:S(100, 90, 185,180, 185,180, 66,10, 66,10, 0)},
+
+ "press-inclinado": {eq:["bancoInc","mancuerna"], flecha:[54,74,54,46],
+   ini:S(98, 62, 200,290, 200,290, 66,16, 66,16, 0),
+   fin:S(98, 62, 186,178, 186,178, 66,16, 66,16, 0)},
+
+ "pec-deck": {eq:["respaldo"], flecha:[52,70,84,70],
+   ini:S(92, -6, 128,176, 128,176, 4,-4, 4,-4, 0),
+   fin:S(92, -6, 76,84, 76,84, 4,-4, 4,-4, 0)},
+
+ "laterales": {eq:["piso"], flecha:[46,62,74,48],
+   ini:S(76, 0, 6,6, 6,6, 2,-2, 2,-2, 0),
+   fin:S(76, 0, 86,86, 86,86, 2,-2, 2,-2, 0)},
+
+ "triceps-polea": {eq:["poleaAlta"], flecha:[40,62,40,92],
+   ini:S(80, -4, 10,168, 10,168, 4,-4, 4,-4, 0),
+   fin:S(80, -4, 10,22, 10,22, 4,-4, 4,-4, 0)},
+
+ "curl-biceps": {eq:["piso","mancuerna"], flecha:[46,92,46,64],
+   ini:S(76, 0, 5,5, 5,5, 2,-2, 2,-2, 0),
+   fin:S(76, 0, 5,158, 5,158, 2,-2, 2,-2, 0)},
+
+ "hip-thrust": {eq:["banco","piso"], flecha:[46,116,46,92],
+   ini:S(116, 51, 60,90, 60,90, 52,-26, 52,-26, 0),
+   fin:S(96, 88, 60,90, 60,90, 68,-46, 68,-46, 0)},
+
+ "pull-through": {eq:["poleaBaja"], flecha:[44,116,44,92],
+   ini:S(82, 62, 40,80, 40,80, 30,-26, 30,-26, 0),
+   fin:S(72, 4, 40,80, 40,80, 2,-2, 2,-2, 0)},
+
+ "prensa-pies-altos": {eq:["padPrensa","seatPrensa","platePrensa"], flecha:[150,116,150,88],
+   ini:S(104, 36, 30,60, 30,60, 96,20, 96,20, 0),
+   fin:S(104, 36, 30,60, 30,60, 56,80, 56,80, 0)},
+
+ "patada-gluteo": {eq:["poleaBaja","tobillera"], flecha:[62,112,36,112],
+   ini:S(80, -18, 70,96, 70,96, 26,-36, 26,-36, 0),
+   fin:S(80, -18, 70,96, 70,96, -36,-56, -36,-56, 0)},
+
+ "jalon": {eq:["poleaAlta","banco"], flecha:[62,48,62,80],
+   ini:S(104, 12, 176,176, 176,176, 78,12, 78,12, 0),
+   fin:S(104, 12, 62,72, 62,72, 78,12, 78,12, 0)},
+
+ "remo-sentado": {eq:["poleaBaja","banco"], flecha:[40,116,40,92],
+   ini:S(104, 12, 96,96, 96,96, 78,12, 78,12, 0),
+   fin:S(104, 12, 152,206, 152,206, 78,12, 78,12, 0)},
+
+ "press-militar": {eq:["respaldo","mancuerna"], flecha:[52,76,52,46],
+   ini:S(100, 6, 152,252, 152,252, 78,12, 78,12, 0),
+   fin:S(100, 6, 178,182, 178,182, 78,12, 78,12, 0)},
+
+ "remo-mancuerna": {eq:["banco","mancuerna"], flecha:[40,110,40,80],
+   ini:S(92, 76, 96,96, 96,96, 88,86, 88,86, 0),
+   fin:S(92, 76, 142,204, 142,204, 88,86, 88,86, 0)},
+
+ "face-pull": {eq:["poleaAlta"], flecha:[48,44,72,58],
+   ini:S(80, -4, 108,108, 108,108, 4,-4, 4,-4, 0),
+   fin:S(80, -4, 152,212, 152,212, 4,-4, 4,-4, 0)},
+
+ "curl-martillo": {eq:["piso","mancuerna"], flecha:[46,92,46,64],
+   ini:S(76, 0, 5,5, 5,5, 2,-2, 2,-2, 0),
+   fin:S(76, 0, 5,150, 5,150, 2,-2, 2,-2, 0)},
+
+ "puente-gluteo": {eq:["piso"], flecha:[42,120,42,98],
+   ini:S(118, 80, 60,90, 60,90, 88,44, 88,44, 0),
+   fin:S(98, 84, 60,90, 60,90, 70,70, 70,70, 0)},
+
+ "curl-nordico": {eq:["piso"], flecha:[36,62,66,50],
+   ini:S(88, 0, 20,40, 20,40, 0,-90, 0,-90, 0),
+   fin:S(96, 68, 100,150, 100,150, 0,-90, 0,-90, 0)}
+};
+
+const FIG_CX = [72, 228];        // centro de la figura de inicio y de fin
+const FIG_LIENZO = "0 0 300 150";
+
+/* Devuelve el SVG completo del ejercicio: las dos posiciones, cada una con su
+   equipo, la flecha del movimiento y la leyenda. */
+function figuraEjercicio(id){
+  const d = DIBUJOS[id];
+  if(!d) return "";
+  const claves = d.eq || [];
+  let equipo = "";
+  FIG_CX.forEach(cx => { claves.forEach(k => { if(EQ[k]) equipo += EQ[k](cx); }); });
+  const ini = Object.assign({}, d.ini, {cx:FIG_CX[0]});
+  const fin = Object.assign({}, d.fin, {cx:FIG_CX[1]});
+  const flecha = d.flecha ? figFlecha(d.flecha[0], d.flecha[1], d.flecha[2], d.flecha[3]) : "";
+  return '<div class="fig">' +
+    '<svg viewBox="' + FIG_LIENZO + '" role="img" aria-label="Esquema del ejercicio">' +
+      equipo + figCuerpo(ini) + figCuerpo(fin) + flecha +
+      '<text class="f-txb" x="10" y="146">INICIO</text>' +
+      '<text class="f-txb" x="248" y="146">FIN</text>' +
+    '</svg>' +
+    '<div class="leyenda">' +
+      '<span><i style="background:#111418"></i>miembro cercano</span>' +
+      '<span><i style="background:#aab3be"></i>miembro lejano</span>' +
+      '<span><i style="background:#1668c4"></i>equipo</span>' +
+      '<span><i style="background:#c2410c"></i>dirección del movimiento</span>' +
+    '</div>' +
+    '<div class="mini" style="padding:0 4px 4px">Esquema de líneas, hecho para entender la <b>posición y el movimiento</b>. No es una foto.</div>' +
+  '</div>';
+}
+
+/* ============================================================
+   10. MI CUERPO — medidas y progreso
+   ============================================================ */
+/* % de grasa por el método de la Armada (hombres).
+   Verificado: con cintura 93, cuello 37 y estatura 168 da 24.7 %,
+   que es exactamente el valor medido del usuario. */
+function grasaNavy(cintura, cuello, estatura){
+  if(!cintura || !cuello || !estatura) return null;
+  const d = cintura - cuello;
+  if(d <= 0) return null;
+  const v = 1.0324 - 0.19077 * Math.log10(d) + 0.15456 * Math.log10(estatura);
+  const bf = 495 / v - 450;
+  return (bf > 2 && bf < 70) ? bf : null;
+}
+
+const MEDIDAS_DEF = [
+  ["peso","Peso (kg)"], ["cintura","Cintura (cm)"], ["cuello","Cuello (cm)"],
+  ["muslo","Muslo (cm)"], ["pantorrilla","Pantorrilla (cm)"], ["brazo","Brazo (cm)"], ["pecho","Pecho (cm)"]
+];
+
+function medidasOrdenadas(){
+  return (ESTADO.medidas || []).slice().sort((a,b)=> (a.fecha||"").localeCompare(b.fecha||""));
+}
+
+function pintarMedidas(){
+  const ms = medidasOrdenadas();
+  const cont = document.getElementById("medContenido");
+  if(!cont) return;
+  if(!ms.length){
+    cont.innerHTML = '<div class="card"><div class="aviso">Todavía no cargaste ninguna medición. ' +
+      'Cargá la primera con tu punto de partida y volvé cada 4 semanas.</div>' +
+      '<div class="hito"><b>Tu punto de partida, para comparar:</b><br>' +
+      '72.6 kg · 24.7 % de grasa · cintura 93 cm · cuello 37 cm · masa magra 54.7 kg</div></div>';
+    return;
+  }
+  const ult = ms[ms.length-1];
+
+  /* tarjetas de estado actual */
+  let html = '<div class="card"><h3 style="margin-top:0">Hoy</h3><div class="tabla-scroll"><table>';
+  html += '<tr><th>Dato</th><th class="num">Ahora</th><th class="num">Inicio</th><th class="num">Cambio</th></tr>';
+  const base = ms[0];
+  [["Peso (kg)","peso",1],["Cintura (cm)","cintura",1],["Cuello (cm)","cuello",1]].forEach(([nom,k,dec])=>{
+    const a = n(ult[k]), b = n(base[k]);
+    if(a===null && b===null) return;
+    const dif = (a!==null && b!==null) ? (a-b) : null;
+    const color = k==="peso" ? (dif<0?"var(--ok)":dif>0?"var(--alerta)":"var(--gris)")
+                             : (dif<0?"var(--ok)":dif>0?"var(--alerta)":"var(--gris)");
+    html += '<tr><td>'+nom+'</td><td class="num"><b>'+(a===null?"—":a.toFixed(dec))+'</b></td>' +
+      '<td class="num">'+(b===null?"—":b.toFixed(dec))+'</td>' +
+      '<td class="num" style="color:'+color+';font-weight:700">' +
+      (dif===null?"—":(dif>0?"+":"")+dif.toFixed(dec))+'</td></tr>';
+  });
+  const bfUlt = grasaNavy(n(ult.cintura), n(ult.cuello), n(ult.estatura)||168);
+  const bfBase = grasaNavy(n(base.cintura), n(base.cuello), n(base.estatura)||168);
+  if(bfUlt!==null){
+    const dif = bfBase!==null ? bfUlt-bfBase : null;
+    html += '<tr><td><b>% de grasa</b></td><td class="num"><b>'+bfUlt.toFixed(1)+' %</b></td>' +
+      '<td class="num">'+(bfBase===null?"—":bfBase.toFixed(1)+" %")+'</td>' +
+      '<td class="num" style="color:'+(dif<0?"var(--ok)":"var(--gris)")+';font-weight:700">' +
+      (dif===null?"—":(dif>0?"+":"")+dif.toFixed(1))+'</td></tr>';
+    const peso = n(ult.peso);
+    if(peso){
+      const grasa = peso*bfUlt/100, magra = peso-grasa;
+      html += '<tr><td>Masa grasa</td><td class="num">'+grasa.toFixed(1)+' kg</td><td class="num">—</td><td class="num">—</td></tr>';
+      html += '<tr><td><b>Masa magra</b></td><td class="num"><b>'+magra.toFixed(1)+' kg</b></td>' +
+        '<td class="num">54.7 kg</td><td class="num" style="font-weight:700;color:' +
+        (magra>=54.7?"var(--ok)":"var(--amarillo)")+'">'+(magra-54.7>0?"+":"")+(magra-54.7).toFixed(1)+'</td></tr>';
+    }
+  }
+  html += '</table></div>';
+  html += '<div class="mini">El % de grasa se calcula con cintura, cuello y estatura (método de la Armada). ' +
+    'La <b>masa magra</b> es lo que queremos proteger: si baja mucho, hay que revisar calorías y sueño.</div></div>';
+
+  /* hitos */
+  const pesoU = n(ult.peso);
+  html += '<div class="card"><h3 style="margin-top:0">Hitos</h3>' +
+    '<div class="hito">Punto de partida: <b>72.6 kg · 24.7 % · cintura 93 cm</b></div>' +
+    '<div class="hito">Objetivo 1: <b>68 kg</b> → ≈20 % de grasa y cintura ≈84 cm</div>' +
+    '<div class="hito">Objetivo 2: <b>64 kg</b> → ≈15 % de grasa</div>';
+  if(pesoU){
+    const falta = pesoU - 68;
+    if(falta > 0) html += '<div class="bien">Te faltan <b>'+falta.toFixed(1)+' kg</b> para el primer objetivo. ' +
+      'A 0.4-0.6 kg por semana son unas <b>'+Math.ceil(falta/0.6)+' a '+Math.ceil(falta/0.4)+' semanas</b>.</div>';
+    else html += '<div class="bien">¡Llegaste al primer objetivo! El siguiente es <b>64 kg</b> (≈15 % de grasa).</div>';
+  }
+  html += '<div class="mini">Es normal perder algo de masa magra: en sobrepeso, la masa libre aporta ' +
+    '<b>20-30 % de la pérdida de peso</b>. Con fuerza y 140 g de proteína ese porcentaje mejora.</div></div>';
+
+  /* gráficos */
+  const pesos = ms.filter(x=> n(x.peso)!==null).map(x=>({fecha:x.fecha, v:n(x.peso)}));
+  const cinturas = ms.filter(x=> n(x.cintura)!==null).map(x=>({fecha:x.fecha, v:n(x.cintura)}));
+  const grasa = ms.map(x=>({fecha:x.fecha, v:grasaNavy(n(x.cintura), n(x.cuello), n(x.estatura)||168)}))
+                  .filter(x=> x.v!==null);
+  if(pesos.length) html += '<div class="card"><h3 style="margin-top:0">Peso (kg)</h3>'+grafico(pesos,"kg")+'</div>';
+  if(cinturas.length) html += '<div class="card"><h3 style="margin-top:0">Cintura (cm)</h3>'+grafico(cinturas,"cm")+'</div>';
+  if(grasa.length) html += '<div class="card"><h3 style="margin-top:0">% de grasa</h3>'+grafico(grasa,"%")+'</div>';
+
+  /* tabla completa */
+  html += '<div class="card"><h3 style="margin-top:0">Todas las mediciones</h3><div class="tabla-scroll"><table>' +
+    '<tr><th>Fecha</th><th class="num">Peso</th><th class="num">Cintura</th><th class="num">Cuello</th>' +
+    '<th class="num">% grasa</th><th class="num">Muslo</th><th class="num">Pantorr.</th><th class="num">Brazo</th>' +
+    '<th></th></tr>';
+  ms.slice().reverse().forEach(x=>{
+    const bf = grasaNavy(n(x.cintura), n(x.cuello), n(x.estatura)||168);
+    html += '<tr><td>'+esc(x.fecha)+'</td>' +
+      '<td class="num">'+(n(x.peso)===null?"—":n(x.peso).toFixed(1))+'</td>' +
+      '<td class="num">'+(n(x.cintura)===null?"—":n(x.cintura).toFixed(1))+'</td>' +
+      '<td class="num">'+(n(x.cuello)===null?"—":n(x.cuello).toFixed(1))+'</td>' +
+      '<td class="num">'+(bf===null?"—":bf.toFixed(1))+'</td>' +
+      '<td class="num">'+(n(x.muslo)===null?"—":n(x.muslo).toFixed(1))+'</td>' +
+      '<td class="num">'+(n(x.pantorrilla)===null?"—":n(x.pantorrilla).toFixed(1))+'</td>' +
+      '<td class="num">'+(n(x.brazo)===null?"—":n(x.brazo).toFixed(1))+'</td>' +
+      '<td><button class="mini" data-delmed="'+esc(x.fecha)+'">✕</button></td></tr>';
+  });
+  html += '</table></div></div>';
+
+  cont.innerHTML = html;
+}
+
+function guardarMedida(){
+  const f = document.getElementById("mFecha").value || hoyISO();
+  const m = {fecha:f};
+  ["peso","cintura","cuello","estatura","muslo","pantorrilla","brazo","pecho"].forEach(k=>{
+    const el = document.getElementById("m" + k.charAt(0).toUpperCase() + k.slice(1));
+    m[k] = el ? n(el.value) : null;
+  });
+  if(m.peso===null && m.cintura===null && m.cuello===null){
+    document.getElementById("msgMedida").innerHTML =
+      '<div class="aviso">Cargá al menos el peso, o la cintura y el cuello (para el % de grasa).</div>';
+    return;
+  }
+  if(!m.estatura) m.estatura = 168;   // su estatura
+  ESTADO.medidas = ESTADO.medidas || [];
+  const i = ESTADO.medidas.findIndex(x=> x.fecha===f);
+  if(i>=0) ESTADO.medidas[i] = m; else ESTADO.medidas.push(m);
+  const okg = guardar();
+  const bf = grasaNavy(m.cintura, m.cuello, m.estatura);
+  document.getElementById("msgMedida").innerHTML = okg
+    ? '<div class="bien">Guardado' + (bf!==null ? ': <b>'+bf.toFixed(1)+' % de grasa</b>' : '') + '.</div>'
+    : '<div class="aviso">No se pudo guardar en el navegador. Usá <b>Mis datos → Descargar copia</b>.</div>';
+  pintarMedidas();
+}
+
+function precargarMedida(){
+  const ms = medidasOrdenadas();
+  const u = ms.length ? ms[ms.length-1] : null;
+  document.getElementById("mFecha").value = hoyISO();
+  ["peso","cintura","cuello","muslo","pantorrilla","brazo","pecho"].forEach(k=>{
+    const el = document.getElementById("m" + k.charAt(0).toUpperCase() + k.slice(1));
+    if(!el) return;
+    el.value = (u && u[k]!==null && u[k]!==undefined) ? u[k] : (k==="estatura" ? 168 : "");
+  });
+  document.getElementById("mEstatura").value = (u && u.estatura) ? u.estatura : 168;
+}
+
+/* ============================================================
+   11. ARRANQUE
+   ============================================================ */
+function cambiarTab(nombre){
+  document.querySelectorAll("#tabs button").forEach(b=> b.setAttribute("aria-selected", b.dataset.t===nombre ? "true":"false"));
+  document.querySelectorAll("main section").forEach(s=> s.classList.toggle("activa", s.id===nombre));
+  if(nombre==="progreso") pintarProgreso();
+  if(nombre==="volumen") pintarVolumen();
+  if(nombre==="datos"){ pintarDatos(); pintarSesionesGuardadas(); }
+  if(nombre==="registrar"){ pintarRegistrar(); pintarSesionesGuardadas(); }
+  if(nombre==="medidas") pintarMedidas();
+  if(nombre==="comidas") pintarComidas();
+  window.scrollTo(0,0);
+}
+
+function pintarTodo(){
+  pintarRegistrar(); pintarProgreso(); pintarVolumen(); pintarDatos(); pintarMedidas();
+  pintarSesionesGuardadas(); pintarBanda();
+}
+
+function iniciar(){
+  cargar();
+  /* ¿Hay una sesión de hoy sin guardar? Si hay una guardada, se precarga. */
+  const deHoy = ESTADO.sesiones.find(s=> s.fecha===hoyISO());
+  BORRADOR = nuevoBorrador(deHoy ? deHoy.dia : "D1");
+  if(deHoy){
+    BORRADOR.sueno = deHoy.sueno==null?"":deHoy.sueno;
+    BORRADOR.estres = deHoy.estres==null?"":deHoy.estres;
+    BORRADOR.dl = deHoy.dl==null?"":deHoy.dl;
+    BORRADOR.dr = deHoy.dr==null?"":deHoy.dr;
+    BORRADOR.notas = deHoy.notas||"";
+    deHoy.ejercicios.forEach((e,i)=>{
+      const k = deHoy.dia + "#" + i;
+      if(BORRADOR.series[k] !== undefined) BORRADOR.series[k] = (e.series||[]).slice();
+    });
+  }
+
+  document.getElementById("fecha").addEventListener("change", ()=>{ leerCampos(); pintarRegistrar(); });
+  document.getElementById("dia").addEventListener("change", async (ev)=>{
+    const elegido = ev.target.value;
+    leerCampos();
+    if(Object.keys(BORRADOR.series).some(k=> (BORRADOR.series[k]||[]).length)){
+      const seguro = await pedirConfirmacion({
+        titulo: "¿Cambiar de sesión?",
+        texto: "Se pierde lo que cargaste y todavía no guardaste.",
+        boton: "Sí, cambiar"
+      });
+      if(!seguro){ ev.target.value = BORRADOR.dia; return; }
+    }
+    BORRADOR.dia = elegido;
+    reiniciarSeries();
+    pintarRegistrar();
+  });
+  ["sueno","estres","dl","dr","notas"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", leerCampos);
+  });
+
+  document.getElementById("listaEjercicios").addEventListener("click", alHacerClic);
+  document.getElementById("guardar").addEventListener("click", alHacerClic);
+  document.getElementById("limpiar").addEventListener("click", alHacerClic);
+
+  /* Lista de sesiones guardadas: borrar UNA, cargarla para editar, o deshacer.
+     El manejador se engancha a los dos lugares donde aparece la lista
+     (Registrar y Mis datos) con delegación, así funciona con lo que se
+     redibuje después. */
+  function alClicEnSesiones(ev){
+    const t = ev.target;
+    const d = (t && t.dataset) ? t.dataset : {};
+    if(d.borrarses){ borrarSesion(d.borrarses); return; }
+    if(d.cargarses){ cargarSesionEnBorrador(d.cargarses); return; }
+    if(d.deshacer !== undefined){ deshacerBorrado(); return; }
+  }
+  ["sesionesGuardadas", "sesionesGuardadas2"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener("click", alClicEnSesiones);
+  });
+  document.getElementById("listaEjercicios").addEventListener("keydown", (ev)=>{
+    if(ev.key==="Enter" && ev.target.dataset.p !== undefined){
+      const k = ev.target.dataset.p;
+      const b = document.querySelector('[data-add="'+k+'"]');
+      if(b) b.click();
+    }
+  });
+
+  document.getElementById("buscar").addEventListener("input", (ev)=> pintarGuia(ev.target.value));
+  document.querySelectorAll("#tabs button").forEach(b=>{
+    b.addEventListener("click", ()=> cambiarTab(b.dataset.t));
+  });
+
+  document.getElementById("expJson").addEventListener("click", ()=>{
+    descargar("entrenamiento-"+hoyISO()+".json", JSON.stringify(ESTADO,null,2), "application/json");
+    marcarExportado();
+  });
+  document.getElementById("expCsv").addEventListener("click", ()=>{
+    descargar("entrenamiento-"+hoyISO()+".csv", aCSV(), "text/csv;charset=utf-8");
+    marcarExportado();
+  });
+  document.getElementById("expTxt").addEventListener("click", ()=>{
+    const t = resumenTexto();
+    /* Nada de prompt(): está bloqueado en el navegador del iPhone. Si el
+       portapapeles no está disponible, se muestra el texto en un cuadro
+       seleccionable para copiarlo a mano. */
+    const mostrarParaCopiar = ()=> avisar("Copiá el resumen de acá abajo:", null, {copiable: t});
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(
+        ()=> avisar("Resumen copiado. Pegalo en el chat.", "bueno"),
+        mostrarParaCopiar
+      );
+    } else {
+      mostrarParaCopiar();
+    }
+  });
+  document.getElementById("impFile").addEventListener("change", (ev)=>{
+    const f = ev.target.files && ev.target.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = async ()=>{
+      let o = null;
+      try{
+        o = JSON.parse(r.result);
+        if(!o || !Array.isArray(o.sesiones)) throw new Error("El archivo no tiene el formato esperado");
+      }catch(e){
+        avisar("No pude leer ese archivo: " + e.message, "malo");
+        return;
+      }
+      const seguro = await pedirConfirmacion({
+        titulo: "¿Reemplazar tus datos?",
+        texto: "El archivo tiene " + o.sesiones.length + " sesión(es).",
+        detalle: "Esto REEMPLAZA todo lo que tenés ahora. Si no exportaste una copia, se pierde.",
+        boton: "Sí, importar",
+        peligro: true
+      });
+      if(!seguro) return;
+      ESTADO = o; guardar(); pintarTodo();
+      avisar("Importado: " + ESTADO.sesiones.length + " sesión(es).", "bueno");
+    };
+    r.onerror = ()=> avisar("No pude abrir el archivo.", "malo");
+    r.readAsText(f);
+  });
+  document.getElementById("borrarTodo").addEventListener("click", async ()=>{
+    if(!ESTADO.sesiones.length){ avisar("No hay nada que borrar."); return; }
+    const seguro = await pedirConfirmacion({
+      titulo: "¿Borrar TODO el historial?",
+      texto: "Se borran " + ESTADO.sesiones.length + " sesión(es) y todas las mediciones.",
+      detalle: "Esto NO se puede deshacer. Si querés borrar una sola sesión, usá el ✕ de la lista de arriba.",
+      boton: "Sí, borrar todo",
+      peligro: true
+    });
+    if(!seguro) return;
+    ESTADO = {sesiones:[], medidas:[], ultimaExportacion:ESTADO.ultimaExportacion}; guardar();
+    BORRADOR = nuevoBorrador("D1"); pintarTodo(); pintarBanda(true);
+    avisar("Historial borrado.", "bueno");
+  });
+
+  document.getElementById("guardarMedida").addEventListener("click", guardarMedida);
+  document.getElementById("precargarMedida").addEventListener("click", precargarMedida);
+  document.getElementById("medContenido").addEventListener("click", async (ev)=>{
+    const f = ev.target && ev.target.dataset ? ev.target.dataset.delmed : null;
+    if(!f) return;
+    const seguro = await pedirConfirmacion({
+      titulo: "¿Borrar esta medición?",
+      texto: "Medición del " + f + ".",
+      detalle: "Las demás mediciones NO se tocan.",
+      boton: "Sí, borrar",
+      peligro: true
+    });
+    if(!seguro) return;
+    ESTADO.medidas = (ESTADO.medidas || []).filter(x=> x.fecha !== f);
+    guardar(); pintarMedidas();
+    avisar("Medición borrada.", "bueno");
+  });
+  document.getElementById("mFecha").value = hoyISO();
+  ["peso","cintura","cuello","muslo","pantorrilla","brazo","pecho"].forEach(k=>{
+    const el = document.getElementById("m" + k.charAt(0).toUpperCase() + k.slice(1));
+    if(el) el.addEventListener("change", ()=>{});
+  });
+
+  /* ---- COMIDAS: fecha, día de hoy y botones de cada comida ---- */
+  document.getElementById("cFecha").addEventListener("change", (ev)=>{
+    fechaComidas = ev.target.value || hoyISO();
+    pintarComidas();
+  });
+  document.getElementById("cHoy").addEventListener("click", ()=>{
+    fechaComidas = hoyISO();
+    pintarComidas();
+  });
+  document.getElementById("comidasContenido").addEventListener("click", async (ev)=>{
+    const d = (ev.target && ev.target.dataset) ? ev.target.dataset : {};
+    if(d.addcom){
+      const sel = document.querySelector('[data-sel="'+d.addcom+'"]');
+      const inp = document.querySelector('[data-cant="'+d.addcom+'"]');
+      const clave = sel ? sel.value : "";
+      if(!clave){ avisar("Elegí qué comiste de la lista.", "malo"); return; }
+
+      /* "No está en la lista": se crea ACÁ MISMO y se registra en esta comida.
+         Es lo que pidió el usuario: poder ingresar las comidas que no aparecen
+         para seleccionar, sin salir de la pantalla. */
+      if(clave === "__NUEVO__"){
+        const datos = await pedirNuevoAlimento("");
+        const nuevo = crearYGuardarAlimento(datos);
+        if(!nuevo){ if(sel) sel.value = ""; return; }
+        agregarComida(fechaComidas, d.addcom, "M:" + nuevo.id, inp ? inp.value : 1);
+        pintarComidas();
+        avisar('Guardado y agregado: "' + nuevo.nom + '". La próxima vez ya está en la lista.', "bueno");
+        return;
+      }
+
+      if(agregarComida(fechaComidas, d.addcom, clave, inp ? inp.value : 1)){
+        pintarComidas();
+        const s2 = document.querySelector('[data-sel="'+d.addcom+'"]');
+        if(s2) s2.value = "";
+      }
+      return;
+    }
+    if(d.delcom){
+      const p = String(d.delcom).split("|");
+      borrarItemComida(p[0], p[1], parseInt(p[2], 10));
+      pintarComidas();
+      return;
+    }
+    if(d.pl){
+      const p = String(d.pl).split("|");
+      aplicarPlantilla(fechaComidas, p[1], parseInt(p[0], 10));
+      return;
+    }
+    if(d.guardarpl){
+      const inp = document.querySelector('[data-nompl="'+d.guardarpl+'"]');
+      guardarPlantilla(fechaComidas, d.guardarpl, inp ? inp.value : "");
+      pintarComidas();
+      return;
+    }
+  });
+
+  /* ---- MIS ALIMENTOS: estimador y alta de alimentos propios ---- */
+  function rellenarEstimacion(){
+    const et = document.getElementById("maTipo"), es = document.getElementById("maTam");
+    if(!et || !es) return;
+    const est = estimar(et.value, es.value);
+    document.getElementById("maProt").value = est.p;
+    document.getElementById("maKcal").value = est.k;
+    const u = document.getElementById("maUni");
+    if(u && !u.value.trim()) u.value = est.uni;
+  }
+  ["maTipo","maTam"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener("change", rellenarEstimacion);
+  });
+  document.getElementById("maGuardar").addEventListener("click", ()=>{
+    const okg = guardarMiAlimento(
+      document.getElementById("maNom").value,
+      document.getElementById("maUni").value,
+      document.getElementById("maProt").value,
+      document.getElementById("maKcal").value
+    );
+    document.getElementById("msgMa").innerHTML = okg
+      ? '<div class="bien">Guardado. Ya aparece en la lista de cada comida, en <b>⭐ Mis alimentos</b>.</div>'
+      : '';
+    if(okg){
+      document.getElementById("maNom").value = "";
+      document.getElementById("maUni").value = "";
+      rellenarEstimacion();
+      pintarComidas();
+    }
+  });
+  document.getElementById("maLista").addEventListener("click", (ev)=>{
+    const d = (ev.target && ev.target.dataset) ? ev.target.dataset : {};
+    if(!d.delma) return;
+    borrarMiAlimento(d.delma);
+    pintarComidas();
+    avisar("Alimento borrado. Las comidas ya registradas no cambian.", "bueno");
+  });
+  rellenarEstimacion();
+
+  pintarRegistrar(); pintarGuia(""); pintarDatos(); pintarMedidas(); pintarSesionesGuardadas(); pintarComidas();
+  pintarBanda(true);   // el estado del guardado es lo PRIMERO que tiene que ver
+  document.getElementById("sub").textContent =
+    ESTADO.sesiones.length ? ESTADO.sesiones.length + " sesiones guardadas"
+                           : "Registro · progreso · volumen · guía de ejercicios";
+  const v = document.getElementById("version");
+  if(v) v.textContent = "Versión " + VERSION + " · " + Object.keys(TECNICAS).length +
+    " ejercicios · " + (Object.keys(SESIONES).length) + " sesiones";
+}
+
+document.addEventListener("DOMContentLoaded", iniciar);
+</script>
+</body>
+</html>
