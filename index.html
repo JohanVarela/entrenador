@@ -902,6 +902,29 @@ const TECNICAS = {
     errores:["Empezar doblando codos sin bajar escápulas","Balanceo para sumar repeticiones","Rango corto arriba o abajo","Soltar de golpe abajo"],
     adaptacion:"Si no llegás a 6 repeticiones limpias, hacé dominadas asistidas con un pie en una silla, o usá la polea alta con la V bar como aproximación y anotalo como tal. Cuando pases de 12, sumá lastre entre los tobillos.",
     evidencia:"Schoenfeld 2019: la frecuencia no importa si el volumen se equipara."
+  },
+  "crunch-polea": {
+    nombre:"Crunch en polea alta, arrodillado",
+    carga:"La que te deje 10-12 con RIR 1",
+    para:"Recto abdominal con carga, que es lo único que lo hace crecer. Ojo: esto NO quita la grasa de la barriga, solo engrosa el músculo para que se marque antes.",
+    posicion:"Arrodillado frente a la polea alta, cuerda sujeta a los lados de la cabeza (no en la nuca). Cadera quieta, caderas encima de las rodillas.",
+    ejecucion:["Flexioná el tronco SOLO 30-40°: llevá las costillas hacia la pelvis, no la cabeza hacia el suelo.",
+      "Apretá el abdomen 1 s abajo.",
+      "Volvé controlado sin dejar que el peso te estire de golpe."],
+    errores:["Redondear toda la columna (es flexión de cadera, no de abdomen)","Tirar con los brazos o la nuca","Usar la lumbar como bisagra","Poner mucho peso y perder el rango corto"],
+    adaptacion:"Rango corto y controlado por tu lumbar: solo 30-40° de flexión y sin buscarla al máximo. Si sientes la espalda baja en vez del abdomen, estás usando la cadera.",
+    evidencia:"Vispute 2011 (JSCR): 6 semanas de abdominales NO redujeron grasa abdominal, cintura ni pliegues, solo mejoraron la resistencia. La visibilidad depende del déficit calórico; este ejercicio es para engrosar el músculo, no para quemar grasa."
+  },
+  "pallof": {
+    nombre:"Pallof press (antirrotación)",
+    carga:"La que te deje 10-12 por lado sin que el torso gire",
+    para:"Trabaja el core resistiendo la rotación en vez de flexionar la columna. Es la opción amable con tu lumbar y la que más te sirve para sostener las cargas del resto del plan.",
+    posicion:"De pie de costado a la polea baja, maneral a la altura del pecho con las dos manos. Pies al ancho de hombros, rodillas algo flexionadas.",
+    ejecucion:["Estirá los brazos al frente sin dejar que el cuerpo gire hacia la polea.",
+      "Aguantá 1-2 s con los brazos extendidos.",
+      "Volvé al pecho controlado. Repetí y cambiá de lado."],
+    errores:["Girar el torso hacia la polea","Arquear la lumbar para compensar","Aguantar la respiración","Poner tanto peso que el cuerpo se va de lado"],
+    adaptacion:"Si el torso gira o la lumbar se arquea, baja la placa: el ejercicio es justamente NO moverse. Usa la polea baja (100%)."
   }
 };;
 
@@ -928,6 +951,7 @@ const SESIONES = {
     {id:"laterales",           nom:"Elevaciones laterales",         musculo:"Hombro", series:4, rango:"12-15", rir:"1"},
     {id:"curl-scott",          nom:"Curl en banco Scott",           musculo:"Bíceps", series:3, rango:"10-12", rir:"1"},
     {id:"curl-barra",          nom:"Curl de bíceps con barra",      musculo:"Bíceps", series:2, rango:"8-12",  rir:"1"},
+    {id:"crunch-polea",        nom:"Crunch en polea (superserie)",  musculo:"Core",   series:3, rango:"10-12", rir:"1"},
     {id:"gemelos-pie",         nom:"Gemelo de pie en Smith",        musculo:"Gemelos",series:3, rango:"12-15", rir:"1"}
   ]},
   D3:{ nombre:"Día 3 (Jueves) — Inferior B", foco:"Cadera, femoral y gemelos", dur:"85 min", ejercicios:[
@@ -948,7 +972,8 @@ const SESIONES = {
     {id:"face-pull",           nom:"Face pull",                     musculo:"Espalda",series:3, rango:"12-15", rir:"2"},
     {id:"curl-martillo",       nom:"Curl martillo",                 musculo:"Bíceps", series:3, rango:"10-12", rir:"1"},
     {id:"curl-inclinado",      nom:"Curl inclinado en banco 45°",   musculo:"Bíceps", series:3, rango:"10-12", rir:"1"},
-    {id:"triceps-polea-alta",  nom:"Extensión tríceps polea alta",  musculo:"Tríceps",series:3, rango:"12-15", rir:"1"}
+    {id:"triceps-polea-alta",  nom:"Extensión tríceps polea alta",  musculo:"Tríceps",series:3, rango:"12-15", rir:"1"},
+    {id:"pallof",              nom:"Pallof press (superserie)",     musculo:"Core",   series:3, rango:"10-12/lado", rir:"2"}
   ]}
 };;
 
@@ -956,7 +981,7 @@ const SESIONES = {
    Se puede verificar: la app calcula el total del plan y avisa si no coincide. */
 const OBJETIVO_VOLUMEN = {
   "Cuádriceps":16, "Glúteo / isquios":15, "Gemelos":18, "Pecho":8,
-  "Hombro":7, "Espalda":14, "Bíceps":11, "Tríceps":9, "Core":6
+  "Hombro":7, "Espalda":14, "Bíceps":11, "Tríceps":9, "Core":12
 };;
 
 const SEMANA_MALA = ["Prensa 4 × 8-10","Curl femoral sentado 3 × 10-12","Gemelo en prensa 4 × 10-12","Press banca Smith 4 × 6-10"];
@@ -976,7 +1001,7 @@ const CLAVE = "gym-entrenamiento-v1";
 
    Historial: v24 app creada · v25 iPhone · v26 diálogos propios ·
    v29 pestaña Comidas · v30 Mis alimentos. */
-const VERSION = "v32 · 2026-10-28";
+const VERSION = "v33 · 2026-10-28";
 
 let ESTADO = {sesiones:[]};
 
