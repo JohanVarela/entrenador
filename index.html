@@ -1001,7 +1001,7 @@ const CLAVE = "gym-entrenamiento-v1";
 
    Historial: v24 app creada · v25 iPhone · v26 diálogos propios ·
    v29 pestaña Comidas · v30 Mis alimentos. */
-const VERSION = "v33 · 2026-10-28";
+const VERSION = "v34 · 2026-10-28";
 
 let ESTADO = {sesiones:[]};
 
@@ -1065,6 +1065,70 @@ function reiniciarSeries(){
     nuevo[BORRADOR.dia + "#" + i] = Array.isArray(viejas) ? viejas : [];
   });
   BORRADOR.series = nuevo;
+}
+
+/* ============================================================
+   BORRADOR PERSISTENTE (v34)
+   Hasta la v33, lo que escribias en "Registrar" vivia SOLO en memoria:
+   si cerrabas la app o se recargaba la pagina antes de tocar
+   "Guardar sesion", se perdia todo. Ahora cada cambio se guarda al
+   instante en una clave aparte y se recupera al volver a abrir.
+   ============================================================ */
+const CLAVE_BORRADOR = "gym-borrador-v1";
+let borradorTimer = null;
+let borradorRestaurado = null;
+let borradorListo = false;   // false hasta que iniciar() termina de armar el borrador
+let borradorSuprimir = false; // true justo despues de guardar: no reescribir el borrador
+
+function seriesDeBorrador(b){
+  if(!b || !b.series) return 0;
+  let tot = 0;
+  Object.keys(b.series).forEach(k=>{ tot += (b.series[k]||[]).length; });
+  return tot;
+}
+function borradorTieneDatos(b){
+  if(!b) return false;
+  const algo = v => v !== "" && v !== null && v !== undefined;
+  return seriesDeBorrador(b) > 0 || String(b.notas||"").trim() !== "" ||
+         algo(b.sueno) || algo(b.estres) || algo(b.dl) || algo(b.dr);
+}
+function guardarBorrador(){
+  try{
+    if(!BORRADOR || borradorSuprimir) return;
+    /* Un borrador vacio no debe existir: si no hay nada cargado se elimina. */
+    if(!borradorTieneDatos(BORRADOR)){ localStorage.removeItem(CLAVE_BORRADOR); return; }
+    const copia = {
+      fecha:BORRADOR.fecha, dia:BORRADOR.dia,
+      sueno:BORRADOR.sueno, estres:BORRADOR.estres,
+      dl:BORRADOR.dl, dr:BORRADOR.dr, notas:BORRADOR.notas,
+      series:BORRADOR.series, _ts:Date.now()
+    };
+    localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(copia));
+  }catch(e){ console.warn("No se pudo guardar el borrador:", e); }
+}
+function guardarBorradorPronto(){
+  if(borradorTimer) clearTimeout(borradorTimer);
+  borradorTimer = setTimeout(guardarBorrador, 300);
+}
+function leerBorradorGuardado(){
+  try{
+    const bruto = localStorage.getItem(CLAVE_BORRADOR);
+    if(!bruto) return null;
+    const o = JSON.parse(bruto);
+    if(!o || typeof o !== "object" || !o.series) return null;
+    return o;
+  }catch(e){ return null; }
+}
+function borrarBorradorGuardado(){
+  try{ localStorage.removeItem(CLAVE_BORRADOR); }catch(e){}
+  borradorRestaurado = null;
+}
+/* lee los campos del formulario solo si existen en la pantalla actual */
+function leerCamposSeguro(){
+  const ids = ["fecha","sueno","estres","dl","dr","notas"];
+  if(ids.some(id=> !document.getElementById(id))) return false;
+  leerCampos();
+  return true;
 }
 
 function ultimaVez(idEj, nom){
@@ -1153,6 +1217,14 @@ function pintarRegistrar(){
   document.getElementById("estadoSesion").innerHTML = ya
     ? '<div class="bien">Ya hay una sesión guardada con esta fecha y este día. Si volvés a guardar, se reemplaza.</div>'
     : '<div class="mini">Sin guardar todavía.</div>';
+
+  /* v34: cada vez que se redibuja el registro se persiste el borrador.
+     Esto cubre agregar y borrar series, que ocurren por CLICK y no
+     disparan los eventos input/change. */
+  if(borradorListo){
+    if(borradorSuprimir) borradorSuprimir = false;  // solo se salta este redibujado
+    else guardarBorrador();
+  }
 }
 
 function leerCampos(){
@@ -1166,6 +1238,14 @@ function leerCampos(){
 
 function alHacerClic(ev){
   const t = ev.target;
+  if(t.dataset && t.dataset.descartarBorrador){
+    borrarBorradorGuardado();
+    BORRADOR = nuevoBorrador(BORRADOR ? BORRADOR.dia : "D1");
+    pintarRegistrar();
+    document.getElementById("msgGuardar").innerHTML =
+      '<div class="aviso">Borrador descartado. Empezás con la sesión limpia.</div>';
+    return;
+  }
   if(t.dataset.add !== undefined && t.dataset.add !== ""){
     const k = t.dataset.add;
     const peso = n(document.querySelector('[data-p="'+k+'"]').value);
@@ -1208,6 +1288,7 @@ function alHacerClic(ev){
     const idx = ESTADO.sesiones.findIndex(x=> x.fecha===nueva.fecha && x.dia===nueva.dia);
     if(idx >= 0) ESTADO.sesiones[idx] = nueva; else ESTADO.sesiones.push(nueva);
     const ok = guardar();
+    if(ok){ borrarBorradorGuardado(); borradorSuprimir = true; }
     document.getElementById("msgGuardar").innerHTML = ok
       ? '<div class="bien">Guardado: ' + totalSeries + ' series en ' + esc(nueva.fecha) + '. Andá a <b>Progreso</b> o <b>Volumen</b> para verlo.</div>'
       : '<div class="aviso"><b>No se pudo guardar en el navegador.</b> Usá <b>Mis datos → Descargar copia</b> para no perder lo cargado.</div>';
@@ -2682,6 +2763,46 @@ function iniciar(){
     });
   }
 
+  /* v34: recuperar un borrador que quedo sin guardar */
+  try{
+    const b = leerBorradorGuardado();
+    const reciente = b && (Date.now() - (b._ts || 0)) < 36*60*60*1000;
+    if(reciente && borradorTieneDatos(b) && SESIONES[b.dia]){
+      const guardada = ESTADO.sesiones.find(s=> s.fecha === b.fecha && s.dia === b.dia);
+      const yaHay = guardada ? seriesDe(guardada) : 0;
+      const tieneSeries = seriesDeBorrador(b);
+      /* Se recupera si aporta algo: mas series que la guardada, o si no hay
+         sesion guardada y el borrador tiene cualquier dato (series o notas). */
+      if(tieneSeries > yaHay || (yaHay === 0 && borradorTieneDatos(b))){
+        BORRADOR = {fecha:b.fecha, dia:b.dia, sueno:b.sueno==null?"":b.sueno,
+                    estres:b.estres==null?"":b.estres, dl:b.dl==null?"":b.dl,
+                    dr:b.dr==null?"":b.dr, notas:b.notas||"", series:b.series};
+        reiniciarSeries();
+        borradorRestaurado = {fecha:b.fecha, dia:b.dia, series:seriesDeBorrador(b)};
+      }
+    }
+  }catch(e){ console.warn("No se pudo recuperar el borrador:", e); }
+  borradorListo = true;
+
+  /* v34: guardar el borrador en cada cambio del formulario */
+  document.addEventListener("input", ()=>{
+    if(!BORRADOR) return;
+    leerCamposSeguro();
+    guardarBorradorPronto();
+  }, true);
+  document.addEventListener("change", ()=>{
+    if(!BORRADOR) return;
+    leerCamposSeguro();
+    guardarBorradorPronto();
+  }, true);
+  window.addEventListener("beforeunload", (ev)=>{
+    if(!BORRADOR || borradorRestaurado) return;
+    if(!borradorTieneDatos(BORRADOR)) return;
+    ev.preventDefault();
+    ev.returnValue = "";
+    return "";
+  });
+
   document.getElementById("fecha").addEventListener("change", ()=>{ leerCampos(); pintarRegistrar(); });
   document.getElementById("dia").addEventListener("change", async (ev)=>{
     const elegido = ev.target.value;
@@ -2798,6 +2919,26 @@ function iniciar(){
     BORRADOR = nuevoBorrador("D1"); pintarTodo(); pintarBanda(true);
     avisar("Historial borrado.", "bueno");
   });
+
+  if(borradorRestaurado){
+    const mg = document.getElementById("msgGuardar");
+    if(mg){
+      mg.innerHTML = '<div class="bien"><b>Recuperé lo que estabas cargando</b> ' +
+        '(sesión del ' + esc(borradorRestaurado.fecha) + ', ' + esc(borradorRestaurado.dia) +
+        ', ' + borradorRestaurado.series + ' series). No se perdió nada. ' +
+        '<button class="mini" id="btnDescartarBorrador" style="margin-left:8px">Descartar y empezar limpio</button></div>';
+      const bd = document.getElementById("btnDescartarBorrador");
+      if(bd) bd.addEventListener("click", ()=>{
+        const dia = BORRADOR ? BORRADOR.dia : "D1";
+        borrarBorradorGuardado();
+        borradorRestaurado = null;
+        BORRADOR = nuevoBorrador(dia);
+        pintarRegistrar();
+        const m2 = document.getElementById("msgGuardar");
+        if(m2) m2.innerHTML = '<div class="aviso">Borrador descartado. Empezás con la sesión limpia.</div>';
+      });
+    }
+  }
 
   document.getElementById("guardarMedida").addEventListener("click", guardarMedida);
   document.getElementById("precargarMedida").addEventListener("click", precargarMedida);
