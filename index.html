@@ -387,6 +387,32 @@ code{background:#eef1f4;padding:1px 5px;border-radius:4px;font-size:12.5px}
     Si borrás los datos del navegador, <b>se pierde todo</b>. Por eso: <b>exportá seguido</b> y guardá el archivo.
   </div>
   <div id="resumenDatos"></div>
+
+  <div class="card" id="cardSync">
+    <h3 style="margin-top:0">Sincronizar con GitHub</h3>
+    <p class="mini">Sube tus datos a un repositorio <b>privado</b> cada vez que guardas.
+      Así el agente los puede leer <b>sin que tengas que descargar ni compartir nada</b>.</p>
+    <div id="syncEstado"></div>
+    <label for="syncToken">Token de GitHub <span class="mini">(se guarda solo en este teléfono)</span></label>
+    <input type="password" id="syncToken" autocomplete="off" spellcheck="false" placeholder="github_pat_...">
+    <div class="med" style="margin-top:6px">
+      <div><label for="syncRepo">Repositorio (usuario/nombre)</label>
+        <input type="text" id="syncRepo" autocomplete="off" spellcheck="false" placeholder="JohanVarela/entrenador-datos"></div>
+      <div><label for="syncRama">Rama</label>
+        <input type="text" id="syncRama" autocomplete="off" spellcheck="false" placeholder="main"></div>
+    </div>
+    <label style="margin-top:10px;display:flex;gap:8px;align-items:center">
+      <input type="checkbox" id="syncAuto" style="width:auto">
+      <span class="mini" style="margin:0">Subir automáticamente al guardar una sesión o una medición</span>
+    </label>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="acc" id="syncSubir">Subir ahora</button>
+      <button class="acc sec" id="syncProbar">Probar conexión</button>
+      <button class="acc sec" id="syncOlvidar">Borrar token</button>
+    </div>
+    <p class="mini" style="margin-top:8px">El token <b>nunca</b> se incluye en las copias de seguridad ni sale de este teléfono
+      excepto hacia GitHub. Si pierdes el teléfono, revócalo en GitHub y crea otro.</p>
+  </div>
   <div class="card">
     <h3>Exportar</h3>
     <p class="mini">Descargá un archivo con todo tu historial. Guardalo en la carpeta del plan.</p>
@@ -1001,7 +1027,7 @@ const CLAVE = "gym-entrenamiento-v1";
 
    Historial: v24 app creada · v25 iPhone · v26 diálogos propios ·
    v29 pestaña Comidas · v30 Mis alimentos. */
-const VERSION = "v34 · 2026-10-28";
+const VERSION = "v35 · 2026-10-28";
 
 let ESTADO = {sesiones:[]};
 
@@ -1288,7 +1314,10 @@ function alHacerClic(ev){
     const idx = ESTADO.sesiones.findIndex(x=> x.fecha===nueva.fecha && x.dia===nueva.dia);
     if(idx >= 0) ESTADO.sesiones[idx] = nueva; else ESTADO.sesiones.push(nueva);
     const ok = guardar();
-    if(ok){ borrarBorradorGuardado(); borradorSuprimir = true; }
+    if(ok){
+      borrarBorradorGuardado(); borradorSuprimir = true;
+      if(syncLeer().auto) syncSubir(true);   /* v35: subida automatica */
+    }
     document.getElementById("msgGuardar").innerHTML = ok
       ? '<div class="bien">Guardado: ' + totalSeries + ' series en ' + esc(nueva.fecha) + '. Andá a <b>Progreso</b> o <b>Volumen</b> para verlo.</div>'
       : '<div class="aviso"><b>No se pudo guardar en el navegador.</b> Usá <b>Mis datos → Descargar copia</b> para no perder lo cargado.</div>';
@@ -2707,6 +2736,7 @@ function guardarMedida(){
   const i = ESTADO.medidas.findIndex(x=> x.fecha===f);
   if(i>=0) ESTADO.medidas[i] = m; else ESTADO.medidas.push(m);
   const okg = guardar();
+  if(okg && syncLeer().auto) syncSubir(true);   /* v35: subida automatica */
   const bf = grasaNavy(m.cintura, m.cuello, m.estatura);
   document.getElementById("msgMedida").innerHTML = okg
     ? '<div class="bien">Guardado' + (bf!==null ? ': <b>'+bf.toFixed(1)+' % de grasa</b>' : '') + '.</div>'
@@ -2746,6 +2776,195 @@ function pintarTodo(){
   pintarSesionesGuardadas(); pintarBanda();
 }
 
+
+/* ============================================================
+   SINCRONIZACION CON GITHUB (v35)
+   Sube ESTADO a un repositorio PRIVADO usando un token fino.
+   El token vive en su propia clave de localStorage y NUNCA se
+   mete dentro de ESTADO, asi que no aparece en las copias de
+   seguridad ni en las exportaciones.
+   ============================================================ */
+const CLAVE_SYNC = "gym-sync-github-v1";
+const RUTA_SYNC = "estado.json";
+const RUTA_MARCA = "ultima-subida.json";
+
+function syncLeer(){
+  const base = {token:"", repo:"", rama:"main", auto:true, ultima:null};
+  try{
+    const b = localStorage.getItem(CLAVE_SYNC);
+    if(!b) return base;
+    const o = JSON.parse(b);
+    if(!o || typeof o !== "object") return base;
+    return {token:o.token||"", repo:o.repo||"", rama:o.rama||"main",
+            auto:o.auto !== false, ultima:o.ultima||null};
+  }catch(e){ return base; }
+}
+function syncGuardar(cfg){
+  try{ localStorage.setItem(CLAVE_SYNC, JSON.stringify(cfg)); return true; }
+  catch(e){ return false; }
+}
+function syncMsg(html, clase){
+  const el = document.getElementById("syncEstado");
+  if(!el) return;
+  const c = clase === "bueno" ? "bien" : clase === "malo" ? "aviso" : "mini";
+  el.innerHTML = '<div class="' + c + '" style="margin-bottom:8px">' + html + '</div>';
+}
+function syncFecha(iso){
+  if(!iso) return "nunca";
+  try{ return new Date(iso).toLocaleString("es-HN"); }catch(e){ return iso; }
+}
+/* base64 de un texto UTF-8, sin romper acentos */
+function b64utf8(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function syncCabeceras(cfg){
+  return {
+    "Authorization": "Bearer " + cfg.token,
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+}
+/* Lee el sha actual del archivo (lo exige la API para actualizar). */
+async function syncSha(cfg, ruta){
+  const url = "https://api.github.com/repos/" + cfg.repo + "/contents/" + ruta +
+              "?ref=" + encodeURIComponent(cfg.rama);
+  const r = await fetch(url, {headers: syncCabeceras(cfg)});
+  if(r.status === 200){ const j = await r.json(); return j.sha || null; }
+  if(r.status === 404) return null;
+  let det = "";
+  try{ det = (await r.text()).slice(0, 200); }catch(e){}
+  throw new Error("GET " + r.status + " " + det);
+}
+async function syncPoner(cfg, ruta, texto, mensaje){
+  const sha = await syncSha(cfg, ruta);
+  const url = "https://api.github.com/repos/" + cfg.repo + "/contents/" + ruta;
+  const cuerpo = {message: mensaje, content: b64utf8(texto), branch: cfg.rama};
+  if(sha) cuerpo.sha = sha;
+  const r = await fetch(url, {
+    method: "PUT",
+    headers: Object.assign({"Content-Type":"application/json"}, syncCabeceras(cfg)),
+    body: JSON.stringify(cuerpo)
+  });
+  if(!r.ok){
+    let det = "";
+    try{ det = (await r.text()).slice(0, 240); }catch(e){}
+    throw new Error("PUT " + r.status + " " + det);
+  }
+  return true;
+}
+async function syncSubir(silencioso){
+  const cfg = syncLeer();
+  if(!cfg.token || !cfg.repo){
+    if(!silencioso) syncMsg("Falta el token o el repositorio.", "malo");
+    return false;
+  }
+  if(!silencioso) syncMsg("Subiendo…");
+  try{
+    const sello = new Date().toISOString();
+    await syncPoner(cfg, RUTA_SYNC, JSON.stringify(ESTADO, null, 1), "datos " + sello);
+    /* marca aparte: sirve para que el agente sepa cuando fue la ultima subida */
+    await syncPoner(cfg, RUTA_MARCA,
+      JSON.stringify({subido:sello, sesiones:(ESTADO.sesiones||[]).length,
+                      medidas:(ESTADO.medidas||[]).length}, null, 1), "marca " + sello);
+    cfg.ultima = sello;
+    syncGuardar(cfg);
+    syncMsg("<b>Subido.</b> " + syncFecha(sello) + " · " +
+            (ESTADO.sesiones||[]).length + " sesión(es), " +
+            (ESTADO.medidas||[]).length + " medición(es).", "bueno");
+    return true;
+  }catch(e){
+    syncMsg("<b>No se pudo subir.</b> " + esc(String(e.message||e)), "malo");
+    return false;
+  }
+}
+async function syncProbar(){
+  const cfg = syncLeer();
+  if(!cfg.token || !cfg.repo){ syncMsg("Escribe el token y el repositorio primero.", "malo"); return; }
+  syncMsg("Comprobando…");
+  try{
+    const r = await fetch("https://api.github.com/repos/" + cfg.repo, {headers: syncCabeceras(cfg)});
+    if(!r.ok){
+      let d = ""; try{ d = (await r.text()).slice(0,180); }catch(e){}
+      throw new Error("HTTP " + r.status + " " + d);
+    }
+    const j = await r.json();
+    if(j.private === false){
+      syncMsg("<b>Ojo: ese repositorio es PÚBLICO.</b> Tus medidas y comidas quedarían " +
+              "visibles para cualquiera. Crea uno <b>privado</b> y cambia el nombre aquí.", "malo");
+      return;
+    }
+    const perms = (j.permissions || {});
+    const puede = perms.push === true || perms.admin === true;
+    if(!puede){
+      syncMsg("<b>Conecta, pero el token no tiene permiso de escritura.</b> " +
+              "Revisa que en el token esté <b>Contents: Read and write</b>.", "malo");
+      return;
+    }
+    syncMsg("<b>Conexión correcta.</b> Repositorio privado: <b>" + esc(j.full_name||cfg.repo) +
+            "</b>. Última subida: " + syncFecha(cfg.ultima) + ".", "bueno");
+  }catch(e){
+    syncMsg("<b>No conectó.</b> " + esc(String(e.message||e)), "malo");
+  }
+}
+function syncPintar(){
+  const cfg = syncLeer();
+  const tok = document.getElementById("syncToken");
+  const rep = document.getElementById("syncRepo");
+  const ram = document.getElementById("syncRama");
+  const aut = document.getElementById("syncAuto");
+  if(tok && cfg.token && !tok.value) tok.value = cfg.token;
+  if(rep && !rep.value) rep.value = cfg.repo;
+  if(ram && !ram.value) ram.value = cfg.rama;
+  if(aut) aut.checked = cfg.auto;
+  if(!cfg.token && !cfg.repo){
+    syncMsg("Sin configurar. Pega el token y el nombre del repositorio privado.", "");
+  }else if(cfg.ultima){
+    syncMsg("Última subida: " + syncFecha(cfg.ultima) + ".", "bueno");
+  }else{
+    syncMsg("Configurado, todavía sin subir.", "");
+  }
+}
+function syncRecoger(){
+  const cfg = syncLeer();
+  const tok = document.getElementById("syncToken");
+  const rep = document.getElementById("syncRepo");
+  const ram = document.getElementById("syncRama");
+  const aut = document.getElementById("syncAuto");
+  cfg.token = tok ? tok.value.trim() : cfg.token;
+  cfg.repo  = rep ? rep.value.trim().replace(/^https?:\/\/github\.com\//i,"").replace(/\.git$/i,"") : cfg.repo;
+  cfg.rama  = ram && ram.value.trim() ? ram.value.trim() : "main";
+  cfg.auto  = aut ? !!aut.checked : true;
+  syncGuardar(cfg);
+  return cfg;
+}
+function syncIniciar(){
+  const tok = document.getElementById("syncToken");
+  const rep = document.getElementById("syncRepo");
+  const ram = document.getElementById("syncRama");
+  const aut = document.getElementById("syncAuto");
+  if(!tok || !rep) return;
+  syncPintar();
+  [tok, rep, ram].forEach(el=>{
+    if(!el) return;
+    el.addEventListener("change", ()=>{ syncRecoger(); syncPintar(); });
+    el.addEventListener("blur",   ()=>{ syncRecoger(); });
+  });
+  if(aut) aut.addEventListener("change", ()=>{ syncRecoger(); });
+  const bSubir = document.getElementById("syncSubir");
+  const bProbar = document.getElementById("syncProbar");
+  const bOlvidar = document.getElementById("syncOlvidar");
+  if(bSubir) bSubir.addEventListener("click", ()=>{ syncRecoger(); syncSubir(false); });
+  if(bProbar) bProbar.addEventListener("click", ()=>{ syncRecoger(); syncProbar(); });
+  if(bOlvidar) bOlvidar.addEventListener("click", ()=>{
+    syncGuardar({token:"", repo:syncLeer().repo, rama:syncLeer().rama, auto:true, ultima:null});
+    if(tok) tok.value = "";
+    syncMsg("Token borrado de este teléfono.", "");
+  });
+}
+
 function iniciar(){
   cargar();
   /* ¿Hay una sesión de hoy sin guardar? Si hay una guardada, se precarga. */
@@ -2783,6 +3002,7 @@ function iniciar(){
     }
   }catch(e){ console.warn("No se pudo recuperar el borrador:", e); }
   borradorListo = true;
+  syncIniciar();
 
   /* v34: guardar el borrador en cada cambio del formulario */
   document.addEventListener("input", ()=>{
