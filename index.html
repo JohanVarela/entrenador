@@ -1027,7 +1027,7 @@ const CLAVE = "gym-entrenamiento-v1";
 
    Historial: v24 app creada · v25 iPhone · v26 diálogos propios ·
    v29 pestaña Comidas · v30 Mis alimentos. */
-const VERSION = "v35 · 2026-10-28";
+const VERSION = "v36 · 2026-10-28";
 
 let ESTADO = {sesiones:[]};
 
@@ -2821,11 +2821,20 @@ function b64utf8(str){
   return btoa(bin);
 }
 function syncCabeceras(cfg){
-  return {
-    "Authorization": "Bearer " + cfg.token,
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28"
-  };
+  /* Solo Authorization. Cualquier cabecera extra obliga al navegador a hacer
+     un preflight OPTIONS y en Safari eso puede fallar con "Load failed". */
+  return { "Authorization": "Bearer " + cfg.token };
+}
+/* Describe el error de red de forma util (Safari solo dice "Load failed"). */
+function syncError(e){
+  if(!e) return "error desconocido";
+  const nombre = e.name || "";
+  const msj = e.message || String(e);
+  if(/load failed|failed to fetch|networkerror/i.test(msj)){
+    return "La petición no llegó a GitHub (red o CORS), no es un problema de permisos. " +
+           "Detalle del navegador: " + esc(msj);
+  }
+  return esc(nombre ? nombre + ": " + msj : msj);
 }
 /* Lee el sha actual del archivo (lo exige la API para actualizar). */
 async function syncSha(cfg, ruta){
@@ -2876,7 +2885,7 @@ async function syncSubir(silencioso){
             (ESTADO.medidas||[]).length + " medición(es).", "bueno");
     return true;
   }catch(e){
-    syncMsg("<b>No se pudo subir.</b> " + esc(String(e.message||e)), "malo");
+    syncMsg("<b>No se pudo subir.</b> " + syncError(e), "malo");
     return false;
   }
 }
@@ -2884,11 +2893,31 @@ async function syncProbar(){
   const cfg = syncLeer();
   if(!cfg.token || !cfg.repo){ syncMsg("Escribe el token y el repositorio primero.", "malo"); return; }
   syncMsg("Comprobando…");
+
+  /* Paso 1: ¿hay conexión con GitHub? Se prueba SIN token ni cabeceras,
+     para separar un problema de red/CORS de uno de permisos. */
+  try{
+    const rPing = await fetch("https://api.github.com/zen");
+    if(!rPing.ok) throw new Error("HTTP " + rPing.status);
+  }catch(e){
+    syncMsg("<b>No hay conexión con GitHub desde este navegador.</b><br>" +
+            syncError(e) + "<br><br>Prueba con datos móviles, o revisa si tienes " +
+            "bloqueadores de contenido o modo restringido activado.", "malo");
+    return;
+  }
+
+  /* Paso 2: ¿el token llega y tiene acceso al repo? */
   try{
     const r = await fetch("https://api.github.com/repos/" + cfg.repo, {headers: syncCabeceras(cfg)});
+    if(r.status === 401){
+      syncMsg("<b>El token no es válido</b> (401). Puede que esté revocado, mal copiado " +
+              "o que le falte un carácter. Vuelve a copiarlo completo.", "malo");
+      return;
+    }
     if(!r.ok){
       let d = ""; try{ d = (await r.text()).slice(0,180); }catch(e){}
-      throw new Error("HTTP " + r.status + " " + d);
+      syncMsg("<b>GitHub respondió HTTP " + r.status + ".</b> " + esc(d), "malo");
+      return;
     }
     const j = await r.json();
     if(j.private === false){
@@ -2906,7 +2935,7 @@ async function syncProbar(){
     syncMsg("<b>Conexión correcta.</b> Repositorio privado: <b>" + esc(j.full_name||cfg.repo) +
             "</b>. Última subida: " + syncFecha(cfg.ultima) + ".", "bueno");
   }catch(e){
-    syncMsg("<b>No conectó.</b> " + esc(String(e.message||e)), "malo");
+    syncMsg("<b>No conectó.</b> " + syncError(e), "malo");
   }
 }
 function syncPintar(){
@@ -2933,7 +2962,8 @@ function syncRecoger(){
   const rep = document.getElementById("syncRepo");
   const ram = document.getElementById("syncRama");
   const aut = document.getElementById("syncAuto");
-  cfg.token = tok ? tok.value.trim() : cfg.token;
+  /* Al pegar en el movil se cuelan espacios y saltos de linea: se limpian */
+  cfg.token = tok ? tok.value.replace(/\s+/g, "") : cfg.token;
   cfg.repo  = rep ? rep.value.trim().replace(/^https?:\/\/github\.com\//i,"").replace(/\.git$/i,"") : cfg.repo;
   cfg.rama  = ram && ram.value.trim() ? ram.value.trim() : "main";
   cfg.auto  = aut ? !!aut.checked : true;
