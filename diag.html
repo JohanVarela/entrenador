@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Diagnóstico de sincronización</title>
+<title>Diagnóstico y sincronización</title>
 <style>
-  :root{--fondo:#11161b;--panel:#1a2129;--tinta:#e7edf3;--gris:#93a1b1;--acento:#39a0ff;--ok:#28a745;--mal:#e0483d;--avi:#e0a039}
+  :root{--fondo:#11161b;--panel:#1a2129;--tinta:#e7edf3;--gris:#93a1b1;--acento:#39a0ff}
   *{box-sizing:border-box}
   body{margin:0;background:var(--fondo);color:var(--tinta);font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px 14px 60px}
   h1{font-size:20px;margin:0 0 4px}
@@ -18,33 +18,32 @@
   button{width:100%;padding:15px;border:0;border-radius:12px;background:var(--acento);color:#fff;font-size:17px;font-weight:600;margin-top:10px}
   button.sec{background:#2c3844}
   button:disabled{opacity:.5}
-  pre{white-space:pre-wrap;word-break:break-word;font:13px/1.45 ui-monospace,Menlo,monospace;background:#0d1216;padding:10px;border-radius:10px;margin:8px 0 0;max-height:300px;overflow:auto}
+  pre{white-space:pre-wrap;word-break:break-word;font:13px/1.45 ui-monospace,Menlo,monospace;background:#0d1216;padding:10px;border-radius:10px;margin:8px 0 0;max-height:280px;overflow:auto}
   .ok{color:#6fdc8c} .mal{color:#ff9c94} .avi{color:#ffd27a}
   .pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:#2c3844;color:var(--gris);margin-left:6px}
   .pill.ok{background:#14361f;color:#6fdc8c} .pill.mal{background:#3b1a17;color:#ff9c94} .pill.avi{background:#3b2f13;color:#ffd27a}
   #envio{font-size:15px;font-weight:600;padding:12px;border-radius:12px;background:#2c3844;text-align:center;margin-top:12px}
-  #envio.ok{background:#14361f;color:#6fdc8c} #envio.mal{background:#3b1a17;color:#ff9c94}
+  #envio.ok{background:#14361f;color:#6fdc8c} #envio.mal{background:#3b1a17;color:#ff9c94} #envio.avi{background:#3b2f13;color:#ffd27a}
 </style>
 </head>
 <body>
-<h1>Diagnóstico de sincronización</h1>
-<p class="mini">Corre solo y <b>envía el informe sin que copies nada</b>. No toca tus sesiones: solo lee la
-configuración que ya guardó la app. No incluye el token completo.</p>
+<h1>Diagnóstico y sincronización</h1>
+<p class="mini">Corrige el nombre del repositorio, comprueba el token y <b>sube tus datos</b> al repo privado.
+No borra nada: solo envía lo que ya tienes guardado en este navegador.</p>
 
 <div class="card" id="entorno"><div class="fila"><span class="k">Cargando…</span></div></div>
 
 <div class="card">
-  <div class="fila"><span class="k">Config de sync en este navegador</span><span class="v" id="cfgResumen">—</span></div>
-  <div class="fila"><span class="k">Datos de entrenamiento aquí</span><span class="v" id="datosResumen">—</span></div>
-  <div id="detalleCfg"></div>
+  <div class="fila"><span class="k">Token</span><span class="v" id="cfgToken">—</span></div>
+  <div class="fila"><span class="k">Repositorio configurado</span><span class="v" id="cfgRepo">—</span></div>
+  <div class="fila"><span class="k">Repositorio que se usará</span><span class="v" id="cfgRepoUsado">—</span></div>
+  <div class="fila"><span class="k">Datos en este navegador</span><span class="v" id="datosResumen">—</span></div>
   <div id="envio">Esperando…</div>
   <button id="btnCorrer" class="sec">Volver a correr y reenviar</button>
   <button id="btnCopiar" class="sec">Copiar el informe (solo si no se pudo enviar)</button>
 </div>
 
-<div class="card">
-  <div id="pruebas"></div>
-</div>
+<div class="card"><div id="pruebas"></div></div>
 
 <div class="card">
   <p class="mini" style="margin-top:0">Claves guardadas en este navegador (nombre · tamaño):</p>
@@ -53,11 +52,12 @@ configuración que ya guardó la app. No incluye el token completo.</p>
 
 <script>
 "use strict";
-/* Canal de retorno: si el repo falla, se publica en este topic público de ntfy.sh (sin cuenta). */
 const TOPIC = "hv-diag-f3c81b";
 const CLAVE_APP = "gym-entrenamiento-v1";
 const CLAVE_SYNC = "gym-sync-github-v1";
 const API = "https://api.github.com";
+const OWNER = "JohanVarela";
+const REPO_DEFECTO = "JohanVarela/entrenador-datos";
 const LINEAS = [];
 
 function anota(t){ LINEAS.push(t); }
@@ -65,65 +65,72 @@ function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,
 function ms(t0){ return Math.round(performance.now()-t0); }
 function fila(k,v,clase){ return '<div class="fila"><span class="k">'+k+'</span><span class="v '+(clase||"")+'">'+v+'</span></div>'; }
 function leerJSON(k){ try{ const b=localStorage.getItem(k); return b?JSON.parse(b):null; }catch(e){ return null; } }
+function b64(texto){
+  const bytes = new TextEncoder().encode(texto);
+  let bin=""; const trozo=8192;
+  for(let i=0;i<bytes.length;i+=trozo){ bin += String.fromCharCode.apply(null, bytes.subarray(i,i+trozo)); }
+  return btoa(bin);
+}
+
+/* Repo: si falta "owner/", se agrega. Esto es lo que rompía la app. */
+function normalizarRepo(r){
+  let v = String(r||"").trim().replace(/^https?:\/\/github\.com\//i,"").replace(/\.git$/i,"").replace(/^\/+|\/+$/g,"");
+  if(!v) return {repo:"", corregido:false};
+  const partes = v.split("/").filter(Boolean);
+  if(partes.length === 1) return {repo: OWNER + "/" + partes[0], corregido:true};
+  return {repo: partes[0] + "/" + partes[1], corregido:false};
+}
 
 /* ---------- entorno ---------- */
 function pintarEntorno(){
   const standalone = (window.navigator.standalone === true) ||
                      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
   let ls="no";
-  try{ localStorage.setItem("__diag","1"); ls = localStorage.getItem("__diag")==="1"?"sí":"raro"; localStorage.removeItem("__diag"); }
-  catch(e){ ls = "NO ("+e.name+")"; }
+  try{ localStorage.setItem("__diag","1"); ls="sí"; localStorage.removeItem("__diag"); }catch(e){ ls="NO ("+e.name+")"; }
   const ua = navigator.userAgent;
   const ios = /iPhone|iPad|iPod/.test(ua);
   const webview = /(FBAN|FBAV|Instagram|WhatsApp|Line;|Twitter|MicroMessenger|GSA)/.test(ua);
   const verIos = (ua.match(/OS (\d+)[._](\d+)/)||[]).slice(1).join(".");
-
   document.getElementById("entorno").innerHTML =
-      fila("Página", esc(location.origin + location.pathname))
-    + fila("Modo", standalone ? '<b>app de pantalla de inicio</b> (almacenamiento SEPARADO)' : "Safari normal", standalone?"avi":"ok")
-    + fila("Navegador", (ios?"iOS "+(verIos||"?"):"no-iOS") + (webview?" · WebView de otra app":""), webview?"mal":"ok")
-    + fila("localStorage", ls, /NO/.test(ls)?"mal":"ok")
-    + fila("Cookies", navigator.cookieEnabled?"sí":"no", navigator.cookieEnabled?"ok":"mal");
-
+      fila("Modo", standalone ? '<b>app de pantalla de inicio</b>' : "Safari normal", standalone?"avi":"ok")
+    + fila("Navegador", (ios?"iOS "+(verIos||"?"):"no-iOS") + (webview?" · WebView":"") , webview?"mal":"ok")
+    + fila("localStorage", ls, /NO/.test(ls)?"mal":"ok");
   anota("== ENTORNO ==");
-  anota("url: " + location.pathname);
-  anota("pantalla_inicio: " + (standalone?"SI (almacenamiento separado)":"no"));
-  anota("ios: " + ios + (verIos?" "+verIos:"") + " | webview: " + webview);
-  anota("localStorage: " + ls + " | cookies: " + navigator.cookieEnabled);
+  anota("pantalla_inicio: " + (standalone?"SI":"no") + " | ios: " + ios + " " + verIos + " | webview: " + webview + " | localStorage: " + ls);
   anota("ua: " + ua);
   anota("");
 }
 
-/* ---------- config + datos ---------- */
+/* ---------- config ---------- */
 function pintarConfig(){
   const cfg = leerJSON(CLAVE_SYNC) || {};
   const tok = String(cfg.token||"");
+  const norm = normalizarRepo(cfg.repo);
   const tokDesc = tok ? (tok.slice(0,11)+"…"+tok.slice(-4)+" ("+tok.length+" car.)") : "sin token";
-  const el = document.getElementById("cfgResumen");
-  el.textContent = tokDesc;
-  el.className = "v " + (tok?"ok":"mal");
-  document.getElementById("detalleCfg").innerHTML =
-      fila("Repositorio", esc(cfg.repo||"—"), cfg.repo?"":"mal")
-    + fila("Rama", esc(cfg.rama||"main"))
-    + fila("Subida automática", cfg.auto===false?"no":"sí")
-    + fila("Última subida registrada", esc(cfg.ultima||"nunca"));
+
+  document.getElementById("cfgToken").textContent = tokDesc;
+  document.getElementById("cfgToken").className = "v " + (tok?"ok":"mal");
+  document.getElementById("cfgRepo").innerHTML = esc(cfg.repo||"—");
+  document.getElementById("cfgRepo").className = "v " + (norm.corregido?"mal":"");
+  document.getElementById("cfgRepoUsado").innerHTML = esc(norm.repo||"—") + (norm.corregido?' <span class="pill avi">corregido</span>':' <span class="pill ok">ok</span>');
+  document.getElementById("cfgRepoUsado").className = "v";
 
   anota("== CONFIG ==");
   anota("token: " + tokDesc);
-  anota("repo: " + (cfg.repo||"—") + " | rama: " + (cfg.rama||"main") + " | auto: " + (cfg.auto!==false));
-  anota("ultima_subida: " + (cfg.ultima||"nunca"));
+  anota("repo_configurado: " + (cfg.repo||"—"));
+  anota("repo_usado: " + (norm.repo||"—") + (norm.corregido?"  (CORREGIDO: faltaba el dueno)":""));
+  anota("rama: " + (cfg.rama||"main") + " | auto: " + (cfg.auto!==false) + " | ultima_subida: " + (cfg.ultima||"nunca"));
   anota("");
 
   const d = leerJSON(CLAVE_APP);
   const de = document.getElementById("datosResumen");
-  if(!d){ de.innerHTML = "<b>nada aquí</b>"; de.className="v mal"; anota("datos: NINGUNO en este navegador"); anota(""); }
+  if(!d || !(d.sesiones||[]).length){ de.innerHTML="<b>nada aquí</b>"; de.className="v mal"; anota("datos: NINGUNO"); anota(""); }
   else {
     const s=(d.sesiones||[]).length, m=(d.medidas||[]).length, c=(d.comidas||[]).length;
     de.textContent = s+" sesiones · "+m+" medidas · "+c+" comidas";
     de.className = "v";
     const f=(d.sesiones||[]).map(x=>x.fecha).filter(Boolean).sort();
-    anota("datos: " + s + " sesiones, " + m + " medidas, " + c + " comidas");
-    anota("fechas: " + (f.length? f[0]+" a "+f[f.length-1] : "—"));
+    anota("datos: " + s + " sesiones, " + m + " medidas, " + c + " comidas · " + (f.length? f[0]+" a "+f[f.length-1] : "—"));
     anota("");
   }
 
@@ -131,7 +138,8 @@ function pintarConfig(){
   for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); const n=(localStorage.getItem(k)||"").length;
     claves += k + " · " + (n>1024? Math.round(n/1024)+"KB" : n+"B") + "\n"; }
   document.getElementById("claves").textContent = claves||"(ninguna)";
-  return cfg;
+
+  return {cfg, tok, repo: norm.repo, rama: String(cfg.rama||"main").trim()||"main"};
 }
 
 /* ---------- red ---------- */
@@ -141,7 +149,7 @@ async function pedir(url, opciones, etiqueta){
     const r = await fetch(url, Object.assign({signal:ctrl.signal}, opciones||{}));
     let cuerpo=""; try{ cuerpo = await r.text(); }catch(e){}
     clearTimeout(timer);
-    anota(etiqueta + ": HTTP " + r.status + " (" + ms(t0) + " ms) " + cuerpo.slice(0,200).replace(/\s+/g," "));
+    anota(etiqueta + ": HTTP " + r.status + " (" + ms(t0) + " ms) " + cuerpo.slice(0,160).replace(/\s+/g," "));
     return {status:r.status, cuerpo, ms:ms(t0)};
   }catch(e){
     clearTimeout(timer);
@@ -152,56 +160,40 @@ async function pedir(url, opciones, etiqueta){
 function bloque(titulo, res, extra){
   let pill="", txt="";
   if(res.red){ pill='<span class="pill mal">no salió</span>'; txt=esc((res.nombre||"")+": "+(res.msj||"")); }
-  else if(res.status>=200&&res.status<300){ pill='<span class="pill ok">'+res.status+'</span>'; txt=esc((res.cuerpo||"").slice(0,200)); }
-  else { pill='<span class="pill avi">'+res.status+'</span>'; txt=esc((res.cuerpo||"").slice(0,200)); }
+  else if(res.status>=200&&res.status<300){ pill='<span class="pill ok">'+res.status+'</span>'; txt=esc((res.cuerpo||"").slice(0,160)); }
+  else { pill='<span class="pill avi">'+res.status+'</span>'; txt=esc((res.cuerpo||"").slice(0,160)); }
   return '<div class="fila" style="align-items:flex-start"><span class="k" style="flex:1">'+titulo+pill+
          ' <span style="color:#6b7681">'+(res.ms!=null?res.ms+" ms":"")+'</span></span></div><pre>'+txt+(extra?"\n"+esc(extra):"")+'</pre>';
 }
 
-/* ---------- envío del informe ---------- */
-async function enviar(texto){
-  const cfg = leerJSON(CLAVE_SYNC) || {};
-  const repo = String(cfg.repo||"").trim();
-  const rama = String(cfg.rama||"main").trim() || "main";
-
-  /* 1 · al repo privado de datos (prueba de fuego de la escritura) */
-  if(cfg.token && repo){
-    try{
-      const u = API + "/contents/diag-resultado.json?ref=" + encodeURIComponent(rama);
-      const g = await fetch(u, {headers:{"Authorization":"Bearer " + cfg.token}});
-      let sha = null;
-      if(g.status === 200){ try{ sha = (await g.json()).sha; }catch(e){} }
-      const bytes = new TextEncoder().encode(texto);
-      let bin=""; for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
-      const cuerpo = {message:"diagnostico desde el iPhone", content:btoa(bin), branch:rama};
-      if(sha) cuerpo.sha = sha;
-      const r = await fetch(API + "/contents/diag-resultado.json", {
-        method:"PUT",
-        headers:{"Authorization":"Bearer " + cfg.token, "Content-Type":"application/json"},
-        body: JSON.stringify(cuerpo)
-      });
-      if(r.ok) return "github";
-      anota("envio_repo: HTTP " + r.status);
-    }catch(e){ anota("envio_repo: fallo " + (e.name||"") + " " + (e.message||e)); }
-  }
-
-  /* 2 · ntfy.sh: POST text/plain = petición simple, SIN preflight */
+/* ---------- escritura en el repo ---------- */
+async function ponerArchivo(cfg, repo, rama, ruta, texto, mensaje){
+  const h = {"Authorization":"Bearer " + cfg.token};
+  let sha = null;
   try{
-    await fetch("https://ntfy.sh/" + TOPIC, {
-      method:"POST", mode:"no-cors",
-      headers:{"Content-Type":"text/plain"},
-      body: texto.slice(0, 3800)
-    });
-    return "ntfy";
-  }catch(e){ anota("envio_ntfy: fallo " + (e.name||"") + " " + (e.message||e)); }
+    const g = await fetch(API + "/repos/" + repo + "/contents/" + ruta + "?ref=" + encodeURIComponent(rama), {headers:h});
+    if(g.status === 200){ try{ sha = (await g.json()).sha; }catch(e){} }
+  }catch(e){ /* si falla el GET, se intenta crear igual */ }
 
-  /* 3 · sendBeacon como último recurso */
+  const cuerpo = {message: mensaje, content: b64(texto), branch: rama};
+  if(sha) cuerpo.sha = sha;
+  const r = await fetch(API + "/repos/" + repo + "/contents/" + ruta, {
+    method:"PUT",
+    headers: Object.assign({"Content-Type":"application/json"}, h),
+    body: JSON.stringify(cuerpo)
+  });
+  let det=""; try{ det = (await r.text()).slice(0,200); }catch(e){}
+  anota("PUT " + ruta + ": HTTP " + r.status + " " + det.replace(/\s+/g," ").slice(0,140));
+  return r.status;
+}
+
+/* ---------- envío de respaldo ---------- */
+async function enviarRespaldo(texto){
   try{
-    const ok = navigator.sendBeacon("https://ntfy.sh/" + TOPIC, new Blob([texto.slice(0,3800)], {type:"text/plain"}));
-    if(ok) return "beacon";
-  }catch(e){}
-
-  return "nada";
+    await fetch("https://ntfy.sh/" + TOPIC, {method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"text/plain"}, body: texto.slice(0,3800)});
+    return true;
+  }catch(e){ return false; }
 }
 
 /* ---------- orquestador ---------- */
@@ -210,65 +202,79 @@ async function correr(){
   const btn = document.getElementById("btnCorrer");
   const env = document.getElementById("envio");
   btn.disabled = true; cont.innerHTML = ""; LINEAS.length = 0;
-  env.className = ""; env.textContent = "Corriendo pruebas…";
+  env.className=""; env.textContent = "Trabajando…";
 
   pintarEntorno();
-  const cfg = pintarConfig();
-  const cab = cfg.token ? {"Authorization":"Bearer " + cfg.token} : {};
-  const repo = String(cfg.repo||"").trim();
-  const rama = String(cfg.rama||"main").trim() || "main";
+  const {cfg, tok, repo, rama} = pintarConfig();
+  const h = {"Authorization":"Bearer " + tok};
+  const conToken = !!tok;
   anota("== PRUEBAS ==");
 
-  cont.insertAdjacentHTML("beforeend", '<p class="mini" style="margin-top:0">1 · ¿Llega a GitHub sin cabeceras?</p>');
+  cont.insertAdjacentHTML("beforeend", '<p class="mini" style="margin-top:0">1 · Red hacia GitHub (sin token)</p>');
   const r1 = await pedir(API + "/zen", {}, "1_zen");
-  cont.insertAdjacentHTML("beforeend", bloque("1 · api.github.com/zen <span class='mini'>(sin token)</span>", r1));
+  cont.insertAdjacentHTML("beforeend", bloque("1 · api.github.com/zen", r1));
 
-  if(!r1.red){
-    cont.insertAdjacentHTML("beforeend", '<p class="mini">2 · ¿El token es válido? (con Authorization → dispara preflight)</p>');
-    const r2 = await pedir(API + "/rate_limit", {headers:cab}, "2_rate_limit");
-    let e2=""; if(!r2.red && r2.status===200){ try{ const j=JSON.parse(r2.cuerpo); e2="límite "+j.rate.limit+" · restante "+j.rate.remaining; }catch(x){} }
-    cont.insertAdjacentHTML("beforeend", bloque("2 · /rate_limit con Authorization", r2, e2));
-    if(r2.red) cont.insertAdjacentHTML("beforeend", '<p class="mini mal">El preflight con cabeceras no pasa → Private Relay, bloqueador o WebView. No es el token.</p>');
-    else if(r2.status===401) cont.insertAdjacentHTML("beforeend", '<p class="mini mal">Token inválido, vencido o mal copiado.</p>');
-
-    cont.insertAdjacentHTML("beforeend", '<p class="mini">3 · ¿Ve el repositorio y puede escribir?</p>');
-    const r3 = await pedir(API + "/repos/" + repo, {headers:cab}, "3_repo");
-    let e3="";
-    if(!r3.red && r3.status===200){
-      try{ const j=JSON.parse(r3.cuerpo); const p=j.permissions||{};
-        e3 = "privado: " + (j.private?"sí":"NO") + " · push: " + (p.push===true) + " · admin: " + (p.admin===true) + " · default_branch: " + j.default_branch;
-        anota("  detalle: " + e3);
-      }catch(x){}
-    }
-    cont.insertAdjacentHTML("beforeend", bloque("3 · /repos/" + esc(repo), r3, e3));
-    if(r3.status===404) cont.insertAdjacentHTML("beforeend", '<p class="mini mal">404: repo mal escrito, o el token no incluye ese repositorio.</p>');
-
-    cont.insertAdjacentHTML("beforeend", '<p class="mini">4 · ¿Existe estado.json?</p>');
-    const r4 = await pedir(API + "/contents/estado.json?ref=" + encodeURIComponent(rama), {headers:cab}, "4_estado");
-    cont.insertAdjacentHTML("beforeend", bloque("4 · contents/estado.json", r4, r4.status===404?"todavía no se ha subido nada (normal la primera vez)":""));
-
-    cont.insertAdjacentHTML("beforeend", '<p class="mini">5 · Respuesta del preflight OPTIONS</p>');
-    const r5 = await pedir(API + "/zen", {method:"OPTIONS"}, "5_options");
-    cont.insertAdjacentHTML("beforeend", bloque("5 · OPTIONS api.github.com/zen", r5));
-  }else{
-    cont.insertAdjacentHTML("beforeend", '<p class="mini mal">Sin red hacia GitHub: no siguen las demás pruebas.</p>');
+  if(r1.red){
+    env.className="mal"; env.innerHTML = "✗ Sin red hacia GitHub. Prueba con datos móviles.";
+    anota("== FIN ==");
+    await enviarRespaldo(LINEAS.join("\n"));
+    btn.disabled=false; return;
   }
 
-  /* envío automático */
+  cont.insertAdjacentHTML("beforeend", '<p class="mini">2 · Token válido (con Authorization)</p>');
+  const r2 = conToken ? await pedir(API + "/rate_limit", {headers:h}, "2_rate_limit")
+                      : {red:true, nombre:"sin token", msj:"no hay token guardado", ms:0};
+  cont.insertAdjacentHTML("beforeend", bloque("2 · /rate_limit con Authorization", r2));
+
+  cont.insertAdjacentHTML("beforeend", '<p class="mini">3 · Repositorio <b>' + esc(repo) + "</b></p>");
+  const r3 = conToken ? await pedir(API + "/repos/" + repo, {headers:h}, "3_repo")
+                      : {red:true, nombre:"sin token", msj:"no hay token", ms:0};
+  let push = false, privado = null;
+  if(!r3.red && r3.status === 200){
+    try{ const j=JSON.parse(r3.cuerpo); privado=j.private; push=(j.permissions||{}).push===true; }catch(e){}
+  }
+  cont.insertAdjacentHTML("beforeend", bloque("3 · /repos/" + esc(repo), r3,
+      "privado: " + privado + " · push: " + push));
+
+  /* subida de los datos */
+  const d = leerJSON(CLAVE_APP);
+  let subido = "no intentado";
+  if(!r3.red && r3.status === 200 && push && d && (d.sesiones||[]).length){
+    cont.insertAdjacentHTML("beforeend", '<p class="mini">4 · Subiendo tus datos al repo privado</p>');
+    env.textContent = "Subiendo tus datos…";
+    try{
+      const sello = new Date().toISOString();
+      const s1 = await ponerArchivo(cfg, repo, rama, "estado.json", JSON.stringify(d), "datos desde el iPhone " + sello);
+      const marca = JSON.stringify({subido:sello, sesiones:(d.sesiones||[]).length,
+                                    medidas:(d.medidas||[]).length, comidas:(d.comidas||[]).length,
+                                    origen:"diag.html (corrige repo sin owner)"});
+      const s2 = await ponerArchivo(cfg, repo, rama, "ultima-subida.json", marca, "marca " + sello);
+      subido = (s1<300 && s2<300) ? "OK (" + (d.sesiones||[]).length + " sesiones)" : ("fallo " + s1 + "/" + s2);
+    }catch(e){ subido = "excepción " + (e.name||"") + ": " + (e.message||e); anota("subida: " + subido); }
+    cont.insertAdjacentHTML("beforeend", '<p class="mini ' + (subido.indexOf("OK")===0?"ok":"mal") + '"><b>Subida: ' + esc(subido) + '</b></p>');
+  }else if(!push){
+    subido = "no se intentó (sin push o sin datos)";
+    cont.insertAdjacentHTML("beforeend", '<p class="mini avi">No se sube nada: falta permiso de escritura, repo inexistente o no hay datos.</p>');
+  }
+
   anota("");
+  anota("SUBIDA_DATOS: " + subido);
   anota("== FIN ==");
+
   const texto = LINEAS.join("\n");
   env.textContent = "Enviando informe…";
-  const via = await enviar(texto);
-  if(via === "github"){
-    env.className = "ok";
-    env.innerHTML = "✓ Informe enviado al repositorio privado.<br><span style='font-weight:400;font-size:14px'>Ya puedes cerrar. El agente lo lee en segundos.</span>";
-  }else if(via === "ntfy" || via === "beacon"){
-    env.className = "ok";
-    env.innerHTML = "✓ Informe enviado por el canal alternativo.<br><span style='font-weight:400;font-size:14px'>Ya puedes cerrar. El agente lo lee en segundos.</span>";
+  const viaRepo = await ponerArchivo(cfg, repo, rama, "diag-resultado.json", texto, "diagnostico");
+  const okRepo = viaRepo >= 200 && viaRepo < 300;
+  const okNtfy = await enviarRespaldo(texto);
+  if(okRepo){
+    env.className="ok";
+    env.innerHTML = "✓ Informe enviado al repositorio privado.<br><span style='font-weight:400;font-size:14px'>Ya puedes cerrar y avisar al agente.</span>";
+  }else if(okNtfy){
+    env.className="avi";
+    env.innerHTML = "! Informe enviado por el canal alternativo.<br><span style='font-weight:400;font-size:14px'>La escritura al repo falló: el agente lo verá igual.</span>";
   }else{
-    env.className = "mal";
-    env.innerHTML = "✗ No se pudo enviar nada.<br><span style='font-weight:400;font-size:14px'>Toca “Copiar el informe” y pégalo en el chat.</span>";
+    env.className="mal";
+    env.innerHTML = "✗ No se pudo enviar. Toca “Copiar el informe” y pégalo en el chat.";
   }
   btn.disabled = false;
 }
@@ -278,7 +284,7 @@ async function copiar(){
   try{ await navigator.clipboard.writeText(txt); alert("Informe copiado."); }
   catch(e){
     const t=document.createElement("textarea"); t.value=txt; document.body.appendChild(t); t.select();
-    try{ document.execCommand("copy"); alert("Informe copiado."); }catch(e2){ alert("No pude copiar: selecciona el texto de los cuadros de abajo."); }
+    try{ document.execCommand("copy"); alert("Informe copiado."); }catch(e2){ alert("No pude copiar."); }
     document.body.removeChild(t);
   }
 }
