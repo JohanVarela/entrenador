@@ -1027,7 +1027,7 @@ const CLAVE = "gym-entrenamiento-v1";
 
    Historial: v24 app creada · v25 iPhone · v26 diálogos propios ·
    v29 pestaña Comidas · v30 Mis alimentos. */
-const VERSION = "v36 · 2026-10-28";
+const VERSION = "v37 · 2026-11-04";
 
 let ESTADO = {sesiones:[]};
 
@@ -1240,9 +1240,18 @@ function pintarRegistrar(){
 
   // estado de la sesión: si ya existe una guardada con esa fecha y día
   const ya = ESTADO.sesiones.find(x=> x.fecha===BORRADOR.fecha && x.dia===BORRADOR.dia);
+  const otroDia = ESTADO.sesiones.find(x=> x.fecha===BORRADOR.fecha && x.dia!==BORRADOR.dia);
   document.getElementById("estadoSesion").innerHTML = ya
     ? '<div class="bien">Ya hay una sesión guardada con esta fecha y este día. Si volvés a guardar, se reemplaza.</div>'
     : '<div class="mini">Sin guardar todavía.</div>';
+
+  /* v37: avisa ANTES de guardar si esa fecha ya tiene otra sesion de otro dia */
+  if(otroDia){
+    document.getElementById("estadoSesion").innerHTML +=
+      '<div class="aviso" style="margin-top:6px"><b>Ojo:</b> el ' + esc(BORRADOR.fecha) +
+      ' ya ten\u00e9s guardada una sesi\u00f3n de ' + esc(otroDia.dia) +
+      '. Si esta es de otro d\u00eda, cambi\u00e1 la fecha antes de guardar.</div>';
+  }
 
   /* v34: cada vez que se redibuja el registro se persiste el borrador.
      Esto cubre agregar y borrar series, que ocurren por CLICK y no
@@ -1311,6 +1320,36 @@ function alHacerClic(ev){
     const nueva = {fecha:BORRADOR.fecha, dia:BORRADOR.dia, nombre:s.nombre,
       sueno:n(BORRADOR.sueno), estres:n(BORRADOR.estres), dl:n(BORRADOR.dl), dr:n(BORRADOR.dr),
       notas:BORRADOR.notas, ejercicios:ejercicios};
+
+    /* v37: dos sesiones en la misma fecha descuadran el volumen semanal.
+       Se pide confirmacion explicita antes de permitirlo. */
+    const choque = ESTADO.sesiones.filter(x=> x.fecha===nueva.fecha && x.dia!==nueva.dia);
+    if(choque.length && !window.__mismaFechaOk){
+      const otra = choque[0];
+      pedirConfirmacion({
+        titulo: "Ese d\u00eda ya tiene otra sesi\u00f3n",
+        texto: "El " + nueva.fecha + " ya guardaste " + (otra.dia || "") + " - " + (otra.nombre || "") +
+               ". Si guard\u00e1s esto, quedar\u00e1n dos sesiones en la misma fecha y el volumen semanal va a salir descuadrado.",
+        detalle: "Si entrenaste en dos d\u00edas distintos, cambi\u00e1 la fecha arriba y volv\u00e9 a tocar Guardar. Si de verdad hiciste las dos el mismo d\u00eda, confirm\u00e1.",
+        boton: "Guardar igual",
+        peligro: true
+      }).then(function(igual){
+        if(igual){
+          window.__mismaFechaOk = true;
+          const b = document.getElementById("guardar");
+          if(b) b.click();
+        }else{
+          window.__mismaFechaOk = false;
+          document.getElementById("msgGuardar").innerHTML =
+            '<div class="aviso"><b>No se guard\u00f3.</b> Cambi\u00e1 la fecha de la sesi\u00f3n (arriba) y volv\u00e9 a tocar Guardar.</div>';
+          const f = document.getElementById("fecha");
+          if(f) f.focus();
+        }
+      });
+      return;
+    }
+    window.__mismaFechaOk = false;
+
     const idx = ESTADO.sesiones.findIndex(x=> x.fecha===nueva.fecha && x.dia===nueva.dia);
     if(idx >= 0) ESTADO.sesiones[idx] = nueva; else ESTADO.sesiones.push(nueva);
     const ok = guardar();
