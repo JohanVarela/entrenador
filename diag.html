@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diagnóstico de sincronización</title>
+<style>
+  :root{--fondo:#11161b;--panel:#1a2129;--tinta:#e7edf3;--gris:#93a1b1;--acento:#39a0ff;--ok:#28a745;--mal:#e0483d;--avi:#e0a039}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--tinta);font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px 14px 60px}
+  h1{font-size:20px;margin:0 0 4px}
+  p.mini{font-size:14px;color:var(--gris);margin:6px 0}
+  .card{background:var(--panel);border-radius:14px;padding:14px;margin:12px 0}
+  .fila{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #26303a;font-size:15px}
+  .fila:last-child{border-bottom:0}
+  .fila b{font-weight:600}
+  .k{color:var(--gris)}
+  .v{text-align:right;word-break:break-all;max-width:62%}
+  button{width:100%;padding:15px;border:0;border-radius:12px;background:var(--acento);color:#fff;font-size:17px;font-weight:600;margin-top:10px}
+  button.sec{background:#2c3844}
+  button:disabled{opacity:.5}
+  pre{white-space:pre-wrap;word-break:break-word;font:13px/1.45 ui-monospace,Menlo,monospace;background:#0d1216;padding:10px;border-radius:10px;margin:8px 0 0;max-height:340px;overflow:auto}
+  .ok{color:var(--ok)} .mal{color:var(--mal)} .avi{color:var(--avi)}
+  .pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:#2c3844;color:var(--gris);margin-left:6px}
+  .pill.ok{background:#14361f;color:#6fdc8c} .pill.mal{background:#3b1a17;color:#ff9c94} .pill.avi{background:#3b2f13;color:#ffd27a}
+</style>
+</head>
+<body>
+<h1>Diagnóstico de sincronización</h1>
+<p class="mini">Prueba, paso por paso, por qué el iPhone no puede subir los datos a GitHub.
+No toca tus sesiones: solo lee la configuración que ya guardó la app.</p>
+
+<div class="card" id="entorno"><div class="fila"><span class="k">Cargando…</span></div></div>
+
+<div class="card">
+  <div class="fila"><span class="k">Config de sync en este navegador</span><span class="v" id="cfgResumen">—</span></div>
+  <div class="fila"><span class="k">Datos de entrenamiento en este navegador</span><span class="v" id="datosResumen">—</span></div>
+  <div id="detalleCfg"></div>
+</div>
+
+<div class="card">
+  <div id="pruebas"></div>
+  <button id="btnCorrer">Volver a correr las pruebas</button>
+  <button id="btnEscribir" class="sec">Probar escritura real (crea un archivo de prueba)</button>
+  <button id="btnCopiar" class="sec">Copiar informe para pegar en el chat</button>
+</div>
+
+<div class="card">
+  <p class="mini" style="margin-top:0">Claves guardadas en este navegador (nombre · tamaño):</p>
+  <pre id="claves">—</pre>
+</div>
+
+<script>
+"use strict";
+const CLAVE_APP = "gym-entrenamiento-v1";
+const CLAVE_SYNC = "gym-sync-github-v1";
+const RUTA_TEST = "diag-escritura-test.json";
+const LINEAS = [];          /* informe para copiar */
+const API = "https://api.github.com";
+
+function anota(txt){ LINEAS.push(txt); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function ms(t0){ return Math.round(performance.now()-t0); }
+
+function fila(k, v, clase, id){
+  return '<div class="fila"><span class="k">'+k+'</span><span class="v '+(clase||"")+'"'+(id?' id="'+id+'"':'')+'>'+v+'</span></div>';
+}
+
+/* ---------- entorno ---------- */
+function pintarEntorno(){
+  const standalone = (window.navigator.standalone === true) ||
+                     (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  let ls = "no";
+  try{ localStorage.setItem("__diag","1"); ls = localStorage.getItem("__diag")==="1" ? "sí" : "raro"; localStorage.removeItem("__diag"); }
+  catch(e){ ls = "NO (" + e.name + ")"; }
+
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua);
+  const webview = /(FBAN|FBAV|Instagram|WhatsApp|Line|Twitter|MicroMessenger|GSA)/.test(ua);
+  const verIos = (ua.match(/OS (\d+)[._](\d+)/)||[]).slice(1).join(".");
+
+  document.getElementById("entorno").innerHTML =
+      fila("Página", location.origin + location.pathname)
+    + fila("Modo", standalone ? '<b>app de pantalla de inicio</b> (almacenamiento SEPARADO)' : "Safari normal",
+           standalone ? "avi" : "ok")
+    + fila("Navegador", (ios ? "iOS " + (verIos||"?") : "no-iOS") + (webview ? " · WebView de otra app" : ""),
+           webview ? "mal" : "ok")
+    + fila("localStorage", ls, /NO/.test(ls) ? "mal" : "ok")
+    + fila("Cookies activas", navigator.cookieEnabled ? "sí" : "no", navigator.cookieEnabled ? "ok":"mal")
+    + fila("User agent", '<span style="font-size:12px">'+esc(ua)+'</span>');
+
+  anota("== ENTORNO ==");
+  anota("url: " + location.href);
+  anota("pantalla de inicio: " + (standalone ? "SI (almacenamiento separado)" : "no"));
+  anota("ios: " + ios + (verIos ? " " + verIos : "") + " | webview: " + webview);
+  anota("localStorage: " + ls + " | cookies: " + navigator.cookieEnabled);
+  anota("ua: " + ua);
+  anota("");
+}
+
+/* ---------- config y datos ---------- */
+function leerJSON(k){ try{ const b=localStorage.getItem(k); return b ? JSON.parse(b) : null; }catch(e){ return null; } }
+
+function pintarConfig(){
+  const cfg = leerJSON(CLAVE_SYNC) || {};
+  const tok = (cfg.token||"");
+  const tokDesc = tok
+      ? tok.slice(0,11) + "…" + tok.slice(-4) + " (" + tok.length + " caracteres)"
+      : "sin token";
+  document.getElementById("cfgResumen").innerHTML = tok ? tokDesc : "<b>sin configurar</b>";
+  document.getElementById("cfgResumen").className = "v " + (tok ? "ok" : "mal");
+  document.getElementById("detalleCfg").innerHTML =
+      fila("Repositorio", esc(cfg.repo || "—"), cfg.repo ? "" : "mal")
+    + fila("Rama", esc(cfg.rama || "main"))
+    + fila("Subida automática", cfg.auto === false ? "no" : "sí")
+    + fila("Última subida registrada", esc(cfg.ultima || "nunca"))
+    + (tok && !/^github_pat_|^ghp_/.test(tok) ? fila("Aviso", "el token no empieza por github_pat_", "avi") : "");
+
+  anota("== CONFIG DE SYNC ==");
+  anota("token: " + tokDesc);
+  anota("repo: " + (cfg.repo||"—") + " | rama: " + (cfg.rama||"main") + " | auto: " + (cfg.auto!==false));
+  anota("ultima subida registrada: " + (cfg.ultima||"nunca"));
+  anota("");
+
+  const d = leerJSON(CLAVE_APP);
+  const el = document.getElementById("datosResumen");
+  if(!d){ el.innerHTML = "<b>nada en este navegador</b>"; el.className="v mal"; anota("datos de entrenamiento: NINGUNO en este navegador"); anota(""); }
+  else {
+    const s=(d.sesiones||[]).length, m=(d.medidas||[]).length, c=(d.comidas||[]).length;
+    el.innerHTML = s+" sesiones · "+m+" medidas · "+c+" comidas";
+    el.className = "v";
+    anota("datos de entrenamiento: " + s + " sesiones, " + m + " medidas, " + c + " comidas");
+    const fechas = (d.sesiones||[]).map(x=>x.fecha).filter(Boolean).sort();
+    anota("fechas de sesiones: " + (fechas.length ? fechas[0] + " → " + fechas[fechas.length-1] : "—"));
+    anota("");
+  }
+
+  let claves = "";
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    const n = (localStorage.getItem(k)||"").length;
+    claves += k + " · " + (n>1024 ? Math.round(n/1024)+" KB" : n+" B") + "\n";
+  }
+  document.getElementById("claves").textContent = claves || "(ninguna)";
+  anota("== CLAVES localStorage ==");
+  anota(claves || "(ninguna)");
+  anota("");
+  return cfg;
+}
+
+/* ---------- pruebas de red ---------- */
+async function pedir(url, opciones, etiqueta){
+  const t0 = performance.now();
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), 15000);
+  const o = Object.assign({signal: ctrl.signal}, opciones||{});
+  try{
+    const r = await fetch(url, o);
+    let cuerpo = "";
+    try{ cuerpo = await r.text(); }catch(e){ cuerpo = "(no se pudo leer el cuerpo)"; }
+    clearTimeout(timer);
+    const res = {ok:r.ok, status:r.status, cuerpo:cuerpo, ms:ms(t0)};
+    anota(etiqueta + ": HTTP " + r.status + " en " + res.ms + " ms");
+    anota("  cuerpo: " + cuerpo.slice(0,300).replace(/\s+/g," "));
+    return res;
+  }catch(e){
+    clearTimeout(timer);
+    const res = {red:true, nombre:e.name||"", msj:e.message||String(e), ms:ms(t0)};
+    anota(etiqueta + ": FALLÓ LA RED en " + res.ms + " ms → " + res.nombre + ": " + res.msj);
+    return res;
+  }
+}
+
+function bloque(titulo, res, extra){
+  let pill = "", txt = "";
+  if(res.red){ pill = '<span class="pill mal">no salió</span>'; txt = esc(res.nombre + ": " + res.msj); }
+  else if(res.status >= 200 && res.status < 300){ pill = '<span class="pill ok">' + res.status + "</span>"; txt = esc((res.cuerpo||"").slice(0,220)); }
+  else { pill = '<span class="pill avi">' + res.status + "</span>"; txt = esc((res.cuerpo||"").slice(0,220)); }
+  return '<div class="fila" style="align-items:flex-start"><span class="k" style="flex:1">' + titulo + pill +
+         ' <span style="color:#6b7681">' + (res.ms!=null ? res.ms+" ms" : "") + '</span></span></div>'
+         + '<pre>' + txt + (extra ? "\n" + esc(extra) : "") + '</pre>';
+}
+
+async function correr(){
+  const cont = document.getElementById("pruebas");
+  const btn = document.getElementById("btnCorrer");
+  btn.disabled = true;
+  cont.innerHTML = "";
+  LINEAS.length = 0;
+  pintarEntorno();
+  const cfg = pintarConfig();
+  anota("== PRUEBAS DE RED ==");
+
+  const cab = cfg.token ? {"Authorization":"Bearer " + cfg.token} : {};
+  const repo = (cfg.repo||"").trim();
+  const rama = (cfg.rama||"main").trim() || "main";
+
+  /* 1. red básica sin cabeceras */
+  cont.insertAdjacentHTML("beforeend", '<p class="mini" style="margin-top:0">1 · ¿Llega a GitHub sin cabeceras?</p>');
+  const r1 = await pedir(API + "/zen", {}, "1 zen (sin token)");
+  cont.insertAdjacentHTML("beforeend", bloque("1 · api.github.com/zen <span class='mini'>(sin token, sin preflight)</span>", r1));
+  if(r1.red){
+    cont.insertAdjacentHTML("beforeend", '<p class="mini mal">Si esto falla, es red/DNS/VPN: ninguna prueba siguiente sirve. Prueba con datos móviles.</p>');
+    anota("");
+    anota("CONCLUSIÓN: la red no llega a GitHub. Problema de wifi/VPN/bloqueador, no del token.");
+    btn.disabled = false; return;
+  }
+
+  /* 2. token: rate_limit */
+  cont.insertAdjacentHTML("beforeend", '<p class="mini">2 · ¿El token es válido? (esta petición lleva Authorization → dispara preflight)</p>');
+  const r2 = await pedir(API + "/rate_limit", {headers:cab}, "2 rate_limit (con token)");
+  let extra2 = "";
+  if(!r2.red && r2.status === 200){ try{ const j=JSON.parse(r2.cuerpo); extra2 = "límite " + j.rate.limit + " · restante " + j.rate.remaining; }catch(e){} }
+  cont.insertAdjacentHTML("beforeend", bloque("2 · /rate_limit con Authorization", r2, extra2));
+  if(r2.red){
+    cont.insertAdjacentHTML("beforeend", '<p class="mini mal">El preflight con cabeceras NO pasa: es Private Relay, bloqueador o WebView. No es el token.</p>');
+    anota("");
+    anota("CONCLUSIÓN: 'zen' pasó pero la petición con Authorization no salió → preflight CORS bloqueado.");
+    btn.disabled = false; return;
+  }
+  if(r2.status === 401){
+    cont.insertAdjacentHTML("beforeend", '<p class="mini mal">Token inválido, revocado, vencido o mal copiado.</p>');
+    anota("");
+    anota("CONCLUSIÓN: token 401.");
+    btn.disabled = false; return;
+  }
+
+  /* 3. el repositorio */
+  cont.insertAdjacentHTML("beforeend", '<p class="mini">3 · ¿El token ve el repositorio y puede escribir?</p>');
+  const r3 = await pedir(API + "/repos/" + repo, {headers:cab}, "3 repos/" + repo);
+  let extra3 = "";
+  if(!r3.red && r3.status === 200){
+    try{
+      const j = JSON.parse(r3.cuerpo);
+      const p = j.permissions || {};
+      extra3 = "privado: " + (j.private?"sí":"NO") + " · push: " + (p.push===true) + " · admin: " + (p.admin===true);
+      anota("  privado=" + j.private + " push=" + p.push + " admin=" + p.admin + " default_branch=" + j.default_branch);
+      if(j.private === false) cont.insertAdjacentHTML("beforeend", '<p class="mini mal">Ese repositorio es PÚBLICO.</p>');
+      if(p.push !== true) cont.insertAdjacentHTML("beforeend", '<p class="mini avi">Sin push: el token necesita Contents: Read and write.</p>');
+    }catch(e){}
+  }
+  cont.insertAdjacentHTML("beforeend", bloque("3 · /repos/" + esc(repo), r3, extra3));
+  if(r3.status === 404) cont.insertAdjacentHTML("beforeend", '<p class="mini mal">404: el nombre del repo está mal, o el token no incluye ese repositorio en "Selected repositories".</p>');
+
+  /* 4. estado.json */
+  cont.insertAdjacentHTML("beforeend", '<p class="mini">4 · ¿Existe ya estado.json en la rama?</p>');
+  const r4 = await pedir(API + "/contents/estado.json?ref=" + encodeURIComponent(rama), {headers:cab}, "4 contents/estado.json");
+  cont.insertAdjacentHTML("beforeend", bloque("4 · contents/estado.json", r4,
+     r4.status === 404 ? "todavía no se ha subido nada (normal la primera vez)" : ""));
+
+  /* 5. preflight explícito */
+  cont.insertAdjacentHTML("beforeend", '<p class="mini">5 · Respuesta del preflight OPTIONS</p>');
+  const r5 = await pedir(API + "/zen", {method:"OPTIONS"}, "5 OPTIONS");
+  cont.insertAdjacentHTML("beforeend", bloque("5 · OPTIONS api.github.com/zen", r5));
+
+  anota("");
+  anota("CONCLUSIÓN: ver pruebas 2-5 arriba.");
+  btn.disabled = false;
+  window.__cfgLista = true;
+}
+
+/* ---------- prueba de escritura ---------- */
+async function probarEscritura(){
+  const cfg = leerJSON(CLAVE_SYNC) || {};
+  const repo = (cfg.repo||"").trim();
+  const rama = (cfg.rama||"main").trim() || "main";
+  const btn = document.getElementById("btnEscribir");
+  if(!cfg.token || !repo){ alert("Primero configura el token y el repositorio en la app."); return; }
+  btn.disabled = true; btn.textContent = "Probando escritura…";
+  anota("");
+  anota("== PRUEBA DE ESCRITURA ==");
+  try{
+    const u = API + "/contents/" + RUTA_TEST + "?ref=" + encodeURIComponent(rama);
+    const rGet = await fetch(u, {headers:{"Authorization":"Bearer " + cfg.token}});
+    const sha = rGet.status === 200 ? (await rGet.json()).sha : null;
+    const texto = JSON.stringify({prueba:true, cuando:new Date().toISOString(), desde:navigator.userAgent});
+    const bytes = new TextEncoder().encode(texto);
+    let bin = ""; for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+    const cuerpo = {message:"prueba de escritura desde el diagnostico", content:btoa(bin), branch:rama};
+    if(sha) cuerpo.sha = sha;
+    const r = await fetch(API + "/contents/" + RUTA_TEST, {
+      method:"PUT",
+      headers:{"Authorization":"Bearer " + cfg.token, "Content-Type":"application/json"},
+      body: JSON.stringify(cuerpo)
+    });
+    let det = ""; try{ det = (await r.text()).slice(0,300); }catch(e){}
+    const ok = r.ok;
+    document.getElementById("pruebas").insertAdjacentHTML("beforeend",
+      '<p class="mini ' + (ok?"ok":"mal") + '"><b>Escritura: HTTP ' + r.status + '</b></p><pre>' + esc(det) + '</pre>');
+    anota("PUT " + RUTA_TEST + ": HTTP " + r.status);
+    anota("  " + det.replace(/\s+/g," "));
+    btn.textContent = ok ? "Escritura OK ✓" : "La escritura falló ✗";
+  }catch(e){
+    document.getElementById("pruebas").insertAdjacentHTML("beforeend",
+      '<p class="mini mal"><b>La escritura no salió:</b> ' + esc((e.name||"") + ": " + (e.message||e)) + '</p>');
+    anota("PUT " + RUTA_TEST + ": FALLÓ → " + (e.name||"") + ": " + (e.message||e));
+    btn.textContent = "La escritura no salió";
+  }
+}
+
+/* ---------- informe ---------- */
+async function copiar(){
+  const txt = LINEAS.join("\n") || "(sin datos: toca primero las pruebas)";
+  try{
+    await navigator.clipboard.writeText(txt);
+    alert("Informe copiado. Pégalo en el chat.\n\n(No incluye el token completo.)");
+  }catch(e){
+    const t = document.createElement("textarea");
+    t.value = txt; document.body.appendChild(t); t.select();
+    try{ document.execCommand("copy"); alert("Informe copiado."); }
+    catch(e2){ alert("No pude copiar. Selecciona y copia el texto del cuadro de abajo."); }
+    document.body.removeChild(t);
+  }
+}
+
+document.getElementById("btnCorrer").addEventListener("click", correr);
+document.getElementById("btnEscribir").addEventListener("click", probarEscritura);
+document.getElementById("btnCopiar").addEventListener("click", copiar);
+correr();
+</script>
+</body>
+</html>
