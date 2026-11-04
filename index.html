@@ -930,16 +930,28 @@ const TECNICAS = {
     evidencia:"Schoenfeld 2019: la frecuencia no importa si el volumen se equipara."
   },
   "crunch-polea": {
-    nombre:"Crunch en polea alta, arrodillado",
+    nombre:"Crunch en polea alta, sentado",
     carga:"La que te deje 10-12 con RIR 1",
     para:"Recto abdominal con carga, que es lo único que lo hace crecer. Ojo: esto NO quita la grasa de la barriga, solo engrosa el músculo para que se marque antes.",
-    posicion:"Arrodillado frente a la polea alta, cuerda sujeta a los lados de la cabeza (no en la nuca). Cadera quieta, caderas encima de las rodillas.",
+    posicion:"SENTADO en el banco (o de pie), de espaldas a la polea alta, cuerda a los lados de la cabeza (no en la nuca). Cadera quieta. NO arrodillado: tu rodilla no tolera el peso del cuerpo en el suelo.",
     ejecucion:["Flexioná el tronco SOLO 30-40°: llevá las costillas hacia la pelvis, no la cabeza hacia el suelo.",
       "Apretá el abdomen 1 s abajo.",
       "Volvé controlado sin dejar que el peso te estire de golpe."],
     errores:["Redondear toda la columna (es flexión de cadera, no de abdomen)","Tirar con los brazos o la nuca","Usar la lumbar como bisagra","Poner mucho peso y perder el rango corto"],
-    adaptacion:"Rango corto y controlado por tu lumbar: solo 30-40° de flexión y sin buscarla al máximo. Si sientes la espalda baja en vez del abdomen, estás usando la cadera.",
+    adaptacion:"SENTADO o de pie, nunca arrodillado (dolor de rodilla al bajar, 2026-11-03). Rango corto y controlado por tu lumbar: solo 30-40° de flexión y sin buscarla al máximo. Si sientes la espalda baja en vez del abdomen, estás usando la cadera.",
     evidencia:"Vispute 2011 (JSCR): 6 semanas de abdominales NO redujeron grasa abdominal, cintura ni pliegues, solo mejoraron la resistencia. La visibilidad depende del déficit calórico; este ejercicio es para engrosar el músculo, no para quemar grasa."
+  },
+  "pec-deck": {
+    nombre:"Pec deck / aperturas en polea",
+    carga:"La que te deje 12-15 con RIR 1",
+    para:"Apertura con codos casi rectos: es el movimiento donde el pectoral trabaja acortado del todo y tambien estirado abajo. Complementa los dos presses.",
+    posicion:"Sentado en la maquina con la espalda apoyada, o de pie entre poleas. Codos semiflexionados y FIJOS: el movimiento es del hombro, no del codo.",
+    ejecucion:["Abri hasta sentir estiramiento en el pecho, sin dolor de hombro.",
+      "Cerra juntando los brazos al frente, apretando el pecho 1 s.",
+      "Volvi controlado en 2-3 s."],
+    errores:["Convertirlo en press doblando los codos","Usar tanto peso que el rango se acorta","Abrir mas alla de lo que tolera el hombro","Rebotar en el punto de estiramiento"],
+    adaptacion:"Si no hay maquina: aperturas con mancuernas en banco plano, o aperturas en polea alta/baja. Doble progresion: primero subi repeticiones hasta 15, despues 5 lb.",
+    evidencia:"Volumen y variedad: Schoenfeld 2017 (PMID 27433992) para la dosis semanal. La ventaja concreta del fly sobre el press es INFERIDA (mecanica: aduccion y estiramiento que el press no cubre), no verificada en un ensayo directo."
   },
   "pallof": {
     nombre:"Pallof press (antirrotación)",
@@ -967,17 +979,18 @@ const SESIONES = {
     {id:"curl-femoral-sentado",nom:"Curl femoral sentado en polea", musculo:"Glúteo / isquios", series:3, rango:"10-12", rir:"1"},
     {id:"gemelo-prensa",       nom:"Gemelo en prensa",              musculo:"Gemelos", series:4, rango:"10-12", rir:"1"},
     {id:"gemelo-sentado",      nom:"Gemelo sentado",                musculo:"Gemelos", series:3, rango:"12-15", rir:"1"},
-    {id:"mcgill",              nom:"McGill Big 3",                  musculo:"Core", series:3, rango:"rondas", rir:"—"}
+    {id:"mcgill",              nom:"McGill Big 3",                  musculo:"Core", series:2, rango:"rondas", rir:"—"}
   ]},
   D2:{ nombre:"Día 2 (Martes) — Superior A", foco:"Empuje y brazos", dur:"80 min", ejercicios:[
     {id:"press-banca",         nom:"Press banca en Smith",          musculo:"Pecho",  series:4, rango:"6-10",  rir:"2"},
-    {id:"press-inclinado",     nom:"Press inclinado mancuernas",    musculo:"Pecho",  series:4, rango:"8-12",  rir:"2"},
+    {id:"press-inclinado",     nom:"Press inclinado mancuernas",    musculo:"Pecho",  series:3, rango:"8-12",  rir:"2"},
+    {id:"pec-deck",            nom:"Pec deck (aperturas)",         musculo:"Pecho",  series:3, rango:"12-15", rir:"1"},
     {id:"triceps-overhead",    nom:"Tríceps overhead polea baja",   musculo:"Tríceps",series:3, rango:"10-12", rir:"1"},
     {id:"triceps-polea",       nom:"Pushdown tríceps con cuerda",   musculo:"Tríceps",series:3, rango:"12-15", rir:"1"},
     {id:"laterales",           nom:"Elevaciones laterales",         musculo:"Hombro", series:4, rango:"12-15", rir:"1"},
     {id:"curl-scott",          nom:"Curl en banco Scott",           musculo:"Bíceps", series:3, rango:"10-12", rir:"1"},
     {id:"curl-barra",          nom:"Curl de bíceps con barra",      musculo:"Bíceps", series:2, rango:"8-12",  rir:"1"},
-    {id:"crunch-polea",        nom:"Crunch en polea (superserie)",  musculo:"Core",   series:3, rango:"10-12", rir:"1"},
+    {id:"crunch-polea",        nom:"Crunch en polea (sentado)",  musculo:"Core",   series:3, rango:"10-12", rir:"1"},
     {id:"gemelos-pie",         nom:"Gemelo de pie en Smith",        musculo:"Gemelos",series:3, rango:"12-15", rir:"1"}
   ]},
   D3:{ nombre:"Día 3 (Jueves) — Inferior B", foco:"Cadera, femoral y gemelos", dur:"85 min", ejercicios:[
@@ -988,7 +1001,7 @@ const SESIONES = {
     {id:"patada-gluteo",       nom:"Patada de glúteo en polea",     musculo:"Glúteo / isquios", series:2, rango:"12-15", rir:"1"},
     {id:"gemelo-prensa",       nom:"Gemelo en prensa",              musculo:"Gemelos", series:5, rango:"12-15", rir:"1"},
     {id:"gemelo-sentado",      nom:"Gemelo sentado",                musculo:"Gemelos", series:3, rango:"12-15", rir:"1"},
-    {id:"mcgill",              nom:"McGill Big 3",                  musculo:"Core", series:3, rango:"rondas", rir:"—"}
+    {id:"mcgill",              nom:"McGill Big 3",                  musculo:"Core", series:2, rango:"rondas", rir:"—"}
   ]},
   D4:{ nombre:"Día 4 (Viernes) — Superior B", foco:"Tracción y brazos", dur:"80 min", ejercicios:[
     {id:"dominadas",           nom:"Dominadas",                     musculo:"Espalda",series:4, rango:"6-12",  rir:"2"},
@@ -1006,8 +1019,8 @@ const SESIONES = {
 /* Objetivo de volumen semanal, en series.
    Se puede verificar: la app calcula el total del plan y avisa si no coincide. */
 const OBJETIVO_VOLUMEN = {
-  "Cuádriceps":16, "Glúteo / isquios":15, "Gemelos":18, "Pecho":8,
-  "Hombro":7, "Espalda":14, "Bíceps":11, "Tríceps":9, "Core":12
+  "Cuádriceps":16, "Glúteo / isquios":15, "Gemelos":18, "Pecho":10,
+  "Hombro":7, "Espalda":14, "Bíceps":11, "Tríceps":9, "Core":10
 };;
 
 const SEMANA_MALA = ["Prensa 4 × 8-10","Curl femoral sentado 3 × 10-12","Gemelo en prensa 4 × 10-12","Press banca Smith 4 × 6-10"];
@@ -1027,7 +1040,7 @@ const CLAVE = "gym-entrenamiento-v1";
 
    Historial: v24 app creada · v25 iPhone · v26 diálogos propios ·
    v29 pestaña Comidas · v30 Mis alimentos. */
-const VERSION = "v37 · 2026-11-04";
+const VERSION = "v38 · 2026-11-04";
 
 let ESTADO = {sesiones:[]};
 
