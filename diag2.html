@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diagnóstico v4 — reparar y subir</title>
+<style>
+  :root{--fondo:#11161b;--panel:#1a2129;--tinta:#e7edf3;--gris:#93a1b1;--acento:#39a0ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--tinta);font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px 14px 60px}
+  h1{font-size:20px;margin:0 0 4px}
+  p.mini{font-size:14px;color:var(--gris);margin:6px 0}
+  .card{background:var(--panel);border-radius:14px;padding:14px;margin:12px 0}
+  .fila{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #26303a;font-size:15px}
+  .fila:last-child{border-bottom:0}
+  .k{color:var(--gris)}
+  .v{text-align:right;word-break:break-all;max-width:60%}
+  button{width:100%;padding:15px;border:0;border-radius:12px;background:var(--acento);color:#fff;font-size:17px;font-weight:600;margin-top:10px}
+  button.sec{background:#2c3844}
+  button:disabled{opacity:.5}
+  pre{white-space:pre-wrap;word-break:break-word;font:13px/1.45 ui-monospace,Menlo,monospace;background:#0d1216;padding:10px;border-radius:10px;margin:8px 0 0;max-height:260px;overflow:auto}
+  .ok{color:#6fdc8c} .mal{color:#ff9c94} .avi{color:#ffd27a}
+  .pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:#2c3844;color:var(--gris);margin-left:6px}
+  .pill.ok{background:#14361f;color:#6fdc8c} .pill.mal{background:#3b1a17;color:#ff9c94} .pill.avi{background:#3b2f13;color:#ffd27a}
+  #envio{font-size:15px;font-weight:600;padding:12px;border-radius:12px;background:#2c3844;text-align:center;margin-top:12px}
+  #envio.ok{background:#14361f;color:#6fdc8c} #envio.mal{background:#3b1a17;color:#ff9c94} #envio.avi{background:#3b2f13;color:#ffd27a}
+  .marca{display:inline-block;background:#14361f;color:#6fdc8c;font-size:12px;padding:2px 8px;border-radius:20px}
+</style>
+</head>
+<body>
+<h1>Reparar y subir <span class="marca">v4</span></h1>
+<p class="mini">Limpia el nombre del repositorio carácter por carácter, comprueba el token y
+<b>sube tus datos</b>. No borra nada.</p>
+
+<div class="card" id="entorno"><div class="fila"><span class="k">Cargando…</span></div></div>
+
+<div class="card">
+  <div class="fila"><span class="k">Token</span><span class="v" id="cfgToken">—</span></div>
+  <div class="fila"><span class="k">Repo guardado (crudo)</span><span class="v" id="cfgRaw">—</span></div>
+  <div class="fila"><span class="k">Repo limpio que se usará</span><span class="v" id="cfgLimpio">—</span></div>
+  <div class="fila"><span class="k">Datos en este navegador</span><span class="v" id="datosResumen">—</span></div>
+  <div id="envio">Esperando…</div>
+  <button id="btnCorrer" class="sec">Volver a correr y reenviar</button>
+  <button id="btnCopiar" class="sec">Copiar el informe (solo si no se pudo enviar)</button>
+</div>
+
+<div class="card"><div id="pruebas"></div></div>
+
+<div class="card">
+  <p class="mini" style="margin-top:0">Claves guardadas en este navegador (nombre · tamaño):</p>
+  <pre id="claves">—</pre>
+</div>
+
+<script>
+"use strict";
+const TOPIC = "hv-diag-f3c81b";
+const CLAVE_APP = "gym-entrenamiento-v1";
+const CLAVE_SYNC = "gym-sync-github-v1";
+const API = "https://api.github.com";
+const OWNER = "JohanVarela";
+const LINEAS = [];
+
+function anota(t){ LINEAS.push(t); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function ms(t0){ return Math.round(performance.now()-t0); }
+function fila(k,v,clase){ return '<div class="fila"><span class="k">'+k+'</span><span class="v '+(clase||"")+'">'+v+'</span></div>'; }
+function leerJSON(k){ try{ const b=localStorage.getItem(k); return b?JSON.parse(b):null; }catch(e){ return null; } }
+function b64(texto){
+  const bytes = new TextEncoder().encode(texto);
+  let bin=""; const t=8192;
+  for(let i=0;i<bytes.length;i+=t){ bin += String.fromCharCode.apply(null, bytes.subarray(i,i+t)); }
+  return btoa(bin);
+}
+/* muestra caracteres invisibles: U+00A0, U+200B, etc. */
+function codepoints(s){
+  let out = [];
+  for(let i=0;i<s.length && i<48;i++){
+    const c = s.charCodeAt(i);
+    out.push(c >= 32 && c < 127 ? s[i] : ("<U+" + c.toString(16).toUpperCase().padStart(4,"0") + ">"));
+  }
+  return out.join("");
+}
+function tieneInvisibles(s){
+  for(let i=0;i<s.length;i++){
+    const c = s.charCodeAt(i);
+    if(!(c >= 32 && c <= 126)) return true;
+  }
+  return false;
+}
+/* Limpia: solo letras, números, guion, guion bajo, punto y barra. Repone el dueño si falta. */
+function limpiarRepo(bruto){
+  const raw = String(bruto||"");
+  let v = raw.replace(/^https?:\/\/github\.com\//i,"").replace(/\.git$/i,"");
+  v = v.replace(/[^A-Za-z0-9._\/-]/g,"");
+  v = v.replace(/^\/+|\/+$/g,"").replace(/\/{2,}/g,"/");
+  const partes = v.split("/").filter(Boolean);
+  let corregido = "";
+  if(partes.length === 0) return {repo:"", nota:"vacío"};
+  if(partes.length === 1){ corregido = "se agregó el dueño"; return {repo: OWNER + "/" + partes[0], nota:corregido}; }
+  return {repo: partes[0] + "/" + partes[1], nota: corregido || "ok"};
+}
+
+function pintarEntorno(){
+  const standalone = (window.navigator.standalone === true) ||
+                     (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  let ls="no"; try{ localStorage.setItem("__d","1"); ls="sí"; localStorage.removeItem("__d"); }catch(e){ ls="NO"; }
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua);
+  const webview = /(FBAN|FBAV|Instagram|WhatsApp|Line;|Twitter|MicroMessenger|GSA)/.test(ua);
+  const ver = (ua.match(/OS (\d+)[._](\d+)/)||[]).slice(1).join(".");
+  document.getElementById("entorno").innerHTML =
+      fila("Versión de la página", '<b>v4</b> (si no ves v4, era caché)')
+    + fila("Modo", standalone ? "app de pantalla de inicio" : "Safari normal", standalone?"avi":"ok")
+    + fila("Navegador", (ios?"iOS "+(ver||"?"):"no-iOS") + (webview?" · WebView":""), webview?"mal":"ok")
+    + fila("localStorage", ls, /NO/.test(ls)?"mal":"ok");
+  anota("== ENTORNO ==");
+  anota("pagina: v4 | pantalla_inicio: " + (standalone?"SI":"no") + " | ios: " + ios + " " + ver + " | webview: " + webview + " | localStorage: " + ls);
+  anota("ua: " + ua);
+  anota("");
+}
+
+function pintarConfig(){
+  const cfg = leerJSON(CLAVE_SYNC) || {};
+  const tok = String(cfg.token||"");
+  const raw = String(cfg.repo||"");
+  const lim = limpiarRepo(raw);
+  const tokDesc = tok ? (tok.slice(0,11)+"…"+tok.slice(-4)+" ("+tok.length+" car.)") : "sin token";
+
+  document.getElementById("cfgToken").textContent = tokDesc;
+  document.getElementById("cfgToken").className = "v " + (tok?"ok":"mal");
+  document.getElementById("cfgRaw").innerHTML = esc(codepoints(raw) || "—");
+  document.getElementById("cfgRaw").className = "v " + (tieneInvisibles(raw)?"mal":"");
+  document.getElementById("cfgLimpio").innerHTML = esc(lim.repo || "—") +
+      (lim.nota==="se agregó el dueño" ? ' <span class="pill avi">sin dueño</span>' :
+       (tieneInvisibles(raw) ? ' <span class="pill avi">limpiado</span>' : ' <span class="pill ok">ok</span>'));
+  document.getElementById("cfgLimpio").className = "v";
+
+  anota("== CONFIG ==");
+  anota("token: " + tokDesc);
+  anota("repo_crudo_codepoints: " + (codepoints(raw)||"—"));
+  anota("repo_crudo_invisibles: " + tieneInvisibles(raw));
+  anota("repo_limpio: " + (lim.repo||"—") + " (" + lim.nota + ")");
+  anota("rama: " + (cfg.rama||"main") + " | auto: " + (cfg.auto!==false) + " | ultima_subida: " + (cfg.ultima||"nunca"));
+  anota("");
+
+  const d = leerJSON(CLAVE_APP);
+  const de = document.getElementById("datosResumen");
+  if(!d || !(d.sesiones||[]).length){ de.innerHTML="<b>nada aquí</b>"; de.className="v mal"; anota("datos: NINGUNO"); anota(""); }
+  else {
+    const s=(d.sesiones||[]).length, m=(d.medidas||[]).length, c=(d.comidas||[]).length;
+    de.textContent = s+" sesiones · "+m+" medidas · "+c+" comidas";
+    de.className="v";
+    const f=(d.sesiones||[]).map(x=>x.fecha).filter(Boolean).sort();
+    anota("datos: " + s + " sesiones, " + m + " medidas, " + c + " comidas · " + (f.length? f[0]+" a "+f[f.length-1] : "—"));
+    anota("");
+  }
+
+  let claves="";
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); const n=(localStorage.getItem(k)||"").length;
+    claves += k + " · " + (n>1024? Math.round(n/1024)+"KB" : n+"B") + "\n"; }
+  document.getElementById("claves").textContent = claves||"(ninguna)";
+
+  return {cfg, tok, repo: lim.repo, rama: String(cfg.rama||"main").trim()||"main"};
+}
+
+async function pedir(url, opciones, etiqueta){
+  const t0=performance.now(), ctrl=new AbortController(), timer=setTimeout(()=>ctrl.abort(),15000);
+  try{
+    const r = await fetch(url, Object.assign({signal:ctrl.signal}, opciones||{}));
+    let cuerpo=""; try{ cuerpo = await r.text(); }catch(e){}
+    clearTimeout(timer);
+    anota(etiqueta + ": HTTP " + r.status + " (" + ms(t0) + " ms) url=" + url + " body=" + cuerpo.slice(0,120).replace(/\s+/g," "));
+    return {status:r.status, cuerpo, ms:ms(t0), url};
+  }catch(e){
+    clearTimeout(timer);
+    anota(etiqueta + ": RED FALLO (" + ms(t0) + " ms) url=" + url + " " + (e.name||"") + ": " + (e.message||e));
+    return {red:true, nombre:e.name||"", msj:e.message||String(e), ms:ms(t0), url};
+  }
+}
+function bloque(titulo, res, extra){
+  let pill="", txt="";
+  if(res.red){ pill='<span class="pill mal">no salió</span>'; txt=esc((res.nombre||"")+": "+(res.msj||"")); }
+  else if(res.status>=200&&res.status<300){ pill='<span class="pill ok">'+res.status+'</span>'; txt=esc((res.cuerpo||"").slice(0,150)); }
+  else { pill='<span class="pill avi">'+res.status+'</span>'; txt=esc((res.cuerpo||"").slice(0,150)); }
+  return '<div class="fila" style="align-items:flex-start"><span class="k" style="flex:1">'+titulo+pill+
+         ' <span style="color:#6b7681">'+(res.ms!=null?res.ms+" ms":"")+'</span></span></div><pre>'+
+         esc(res.url||"")+"\n"+txt+(extra?"\n"+esc(extra):"")+'</pre>';
+}
+
+async function ponerArchivo(cfg, repo, rama, ruta, texto, mensaje){
+  const h = {"Authorization":"Bearer " + cfg.token};
+  const urlGet = API + "/repos/" + repo + "/contents/" + ruta + "?ref=" + encodeURIComponent(rama);
+  const urlPut = API + "/repos/" + repo + "/contents/" + ruta;
+  let sha = null;
+  try{
+    const g = await fetch(urlGet, {headers:h});
+    if(g.status === 200){ try{ sha = (await g.json()).sha; }catch(e){} }
+  }catch(e){ anota("GET sha " + ruta + ": fallo " + (e.name||"") + " " + (e.message||e)); }
+
+  const cuerpo = {message: mensaje, content: b64(texto), branch: rama};
+  if(sha) cuerpo.sha = sha;
+  try{
+    const r = await fetch(urlPut, {method:"PUT",
+      headers: Object.assign({"Content-Type":"application/json"}, h),
+      body: JSON.stringify(cuerpo)});
+    let det=""; try{ det = (await r.text()).slice(0,180); }catch(e){}
+    anota("PUT " + ruta + ": HTTP " + r.status + " url=" + urlPut + " " + det.replace(/\s+/g," ").slice(0,130));
+    return r.status;
+  }catch(e){
+    anota("PUT " + ruta + ": RED FALLO url=" + urlPut + " " + (e.name||"") + ": " + (e.message||e));
+    return -1;
+  }
+}
+
+async function enviarRespaldo(texto){
+  try{
+    await fetch("https://ntfy.sh/" + TOPIC, {method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"text/plain"}, body: texto.slice(0,3800)});
+    return true;
+  }catch(e){ return false; }
+}
+
+async function correr(){
+  const cont = document.getElementById("pruebas");
+  const btn = document.getElementById("btnCorrer");
+  const env = document.getElementById("envio");
+  btn.disabled = true; cont.innerHTML = ""; LINEAS.length = 0;
+  env.className=""; env.textContent = "Trabajando…";
+
+  pintarEntorno();
+  const {cfg, tok, repo, rama} = pintarConfig();
+  const h = {"Authorization":"Bearer " + tok};
+  anota("== PRUEBAS ==");
+
+  cont.insertAdjacentHTML("beforeend", '<p class="mini" style="margin-top:0">1 · Red hacia GitHub (sin token)</p>');
+  const r1 = await pedir(API + "/zen", {}, "1_zen");
+  cont.insertAdjacentHTML("beforeend", bloque("1 · api.github.com/zen", r1));
+
+  if(r1.red){
+    env.className="mal"; env.innerHTML="✗ Sin red hacia GitHub.";
+    anota("== FIN =="); await enviarRespaldo(LINEAS.join("\n"));
+    btn.disabled=false; return;
+  }
+
+  cont.insertAdjacentHTML("beforeend", '<p class="mini">2 · Token válido</p>');
+  const r2 = await pedir(API + "/rate_limit", {headers:h}, "2_rate_limit");
+  cont.insertAdjacentHTML("beforeend", bloque("2 · /rate_limit con Authorization", r2));
+
+  cont.insertAdjacentHTML("beforeend", '<p class="mini">3 · Repositorio limpio: <b>' + esc(repo) + "</b></p>");
+  const r3 = await pedir(API + "/repos/" + repo, {headers:h}, "3_repo");
+  let push=false, privado=null;
+  if(!r3.red && r3.status===200){ try{ const j=JSON.parse(r3.cuerpo); privado=j.private; push=(j.permissions||{}).push===true; }catch(e){} }
+  cont.insertAdjacentHTML("beforeend", bloque("3 · /repos/" + esc(repo), r3, "privado: "+privado+" · push: "+push));
+
+  /* alternativa sin barra, por si el problema fuese la ruta con dueño */
+  if(r3.red || r3.status!==200){
+    cont.insertAdjacentHTML("beforeend", '<p class="mini avi">Reintento con el nombre tal cual estaba guardado</p>');
+    const r3b = await pedir(API + "/repos/" + String(cfg.repo||"").replace(/[^A-Za-z0-9._\/-]/g,""), {headers:h}, "3b_repo_crudo");
+    cont.insertAdjacentHTML("beforeend", bloque("3b · /repos/" + esc(cfg.repo||""), r3b));
+  }
+
+  const d = leerJSON(CLAVE_APP);
+  let subido = "no intentado";
+  if(!r3.red && r3.status===200 && push && d && (d.sesiones||[]).length){
+    cont.insertAdjacentHTML("beforeend", '<p class="mini">4 · Subiendo tus datos</p>');
+    env.textContent = "Subiendo tus datos…";
+    const sello = new Date().toISOString();
+    const s1 = await ponerArchivo(cfg, repo, rama, "estado.json", JSON.stringify(d), "datos desde el iPhone " + sello);
+    const marca = JSON.stringify({subido:sello, sesiones:(d.sesiones||[]).length,
+                                  medidas:(d.medidas||[]).length, comidas:(d.comidas||[]).length,
+                                  origen:"diag v4"});
+    const s2 = await ponerArchivo(cfg, repo, rama, "ultima-subida.json", marca, "marca " + sello);
+    subido = (s1>0 && s1<300 && s2>0 && s2<300) ? ("OK " + (d.sesiones||[]).length + " sesiones") : ("fallo " + s1 + "/" + s2);
+    cont.insertAdjacentHTML("beforeend", '<p class="mini ' + (subido.indexOf("OK")===0?"ok":"mal") + '"><b>Subida: ' + esc(subido) + '</b></p>');
+  }else{
+    cont.insertAdjacentHTML("beforeend", '<p class="mini avi">No se sube nada: repo no accesible, sin permiso de escritura o sin datos.</p>');
+  }
+
+  anota("");
+  anota("SUBIDA_DATOS: " + subido);
+  anota("== FIN ==");
+
+  const texto = LINEAS.join("\n");
+  env.textContent = "Enviando informe…";
+  const st = await ponerArchivo(cfg, repo, rama, "diag-resultado.json", texto, "diagnostico v4");
+  const okRepo = st>0 && st<300;
+  const okNtfy = await enviarRespaldo(texto);
+  if(okRepo){
+    env.className="ok";
+    env.innerHTML = "✓ Subido al repositorio privado.<br><span style='font-weight:400;font-size:14px'>Ya puedes cerrar y avisar.</span>";
+  }else if(okNtfy){
+    env.className="avi";
+    env.innerHTML = "! Informe enviado por el canal alternativo.<br><span style='font-weight:400;font-size:14px'>La escritura al repo falló; el agente lo verá igual.</span>";
+  }else{
+    env.className="mal";
+    env.innerHTML = "✗ No se pudo enviar. Toca “Copiar el informe”.";
+  }
+  btn.disabled = false;
+}
+
+async function copiar(){
+  const txt = LINEAS.join("\n") || "(sin datos)";
+  try{ await navigator.clipboard.writeText(txt); alert("Informe copiado."); }
+  catch(e){
+    const t=document.createElement("textarea"); t.value=txt; document.body.appendChild(t); t.select();
+    try{ document.execCommand("copy"); alert("Informe copiado."); }catch(e2){ alert("No pude copiar."); }
+    document.body.removeChild(t);
+  }
+}
+
+document.getElementById("btnCorrer").addEventListener("click", correr);
+document.getElementById("btnCopiar").addEventListener("click", copiar);
+correr();
+</script>
+</body>
+</html>
